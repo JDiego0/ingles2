@@ -6,7 +6,7 @@ import { ttsAvailable } from '../../speech/tts';
 import { recognitionAvailable } from '../../speech/recognition';
 import { Icon } from '../Icon';
 import { Verdict } from '../ui';
-import { Listen, useSpeaker } from '../Audio';
+import { AudioFailed, Listen, useSpeaker } from '../Audio';
 import { SelfRecorder, VoiceInput } from '../VoiceInput';
 import { AnswerFlow } from './AnswerFlow';
 import { OpenView } from './OpenView';
@@ -50,11 +50,12 @@ function TypeView({ ex, mode, onDone, doneLabel }: ExerciseProps<TypeExercise>) 
 }
 
 function ListenView({ ex, mode, onDone, doneLabel }: ExerciseProps<ListenExercise>) {
-  const tts = ttsAvailable();
-  const { play } = useSpeaker();
+  const { play, failed } = useSpeaker();
+  const tts = ttsAvailable() && !failed;
   return (
     <div className="exercise">
       <Prompt instr={ex.prompt} mode={mode} />
+      {failed && <AudioFailed />}
       {tts ? (
         <div className="listen-big">
           <button type="button" className="btn btn--primary btn--round" onClick={() => play(ex.text)} aria-label="Escuchar la frase">

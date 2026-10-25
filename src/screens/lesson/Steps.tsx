@@ -26,11 +26,20 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
   const [listened, setListened] = useState(false);
   const ctx = lesson.context;
 
+  const [audioFailed, setAudioFailed] = useState(false);
+
   const playAll = async () => {
     setPlayingAll(true);
     for (const l of ctx.lines) {
       // eslint-disable-next-line no-await-in-loop
-      await play(l.en);
+      const ok = await play(l.en);
+      if (!ok) {
+        // Sin audio real: pasar a leer la conversación.
+        setAudioFailed(true);
+        setPlayingAll(false);
+        setStage('gist');
+        return;
+      }
     }
     setPlayingAll(false);
     setListened(true);
@@ -63,7 +72,7 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
 
       {stage === 'gist' && (
         <>
-          {!tts && <Verdict kind="info">Sin audio disponible: lee la conversación y responde.</Verdict>}
+          {(!tts || audioFailed) && <Verdict kind="info">Sin audio disponible: lee la conversación y responde.</Verdict>}
           {(!tts || !listened) && <Transcript lesson={lesson} showEs={{}} toggle={() => undefined} speaking={speaking} play={play} hideTranslation />}
           {listened && (
             <button type="button" className="link-btn" onClick={playAll}>

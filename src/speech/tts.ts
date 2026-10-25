@@ -62,15 +62,26 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<bool
     u.lang = voice?.lang ?? 'en-US';
     u.rate = opts.rate ?? 0.9;
     let finished = false;
+    let started = false;
     const end = (ok: boolean) => {
       if (finished) return;
       finished = true;
       resolve(ok);
     };
+    u.onstart = () => {
+      started = true;
+    };
     u.onend = () => end(true);
     u.onerror = (e) => end(e.error === 'interrupted' || e.error === 'canceled');
+    // Si el audio no empieza (sin voces instaladas, bloqueo del navegador), se informa del fallo.
+    setTimeout(() => {
+      if (!started && !synth.speaking) {
+        synth.cancel();
+        end(false);
+      }
+    }, 3000);
     // Algunos Android no disparan onend: límite de seguridad según la longitud.
-    setTimeout(() => end(true), 2000 + (text.length * 120) / (u.rate || 1));
+    setTimeout(() => end(true), 4000 + (text.length * 120) / (u.rate || 1));
     synth.speak(u);
   });
 }
