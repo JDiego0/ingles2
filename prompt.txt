@@ -1,0 +1,774 @@
+# PROYECTO: ENGLISH JOURNEY — PLATAFORMA PERSONAL DE APRENDIZAJE DE INGLÉS A1 → B2
+
+## 1. TU ROL
+
+Actúa como un equipo multidisciplinario compuesto por:
+
+- Un ingeniero de software senior especializado en React, TypeScript y aplicaciones web.
+- Un diseñador UX/UI experto en aplicaciones educativas mobile-first.
+- Un especialista en adquisición de segundas lenguas y enseñanza comunicativa del inglés.
+- Un diseñador instruccional que utiliza recuperación activa, repetición espaciada, aprendizaje contextual y evaluación por competencias.
+- Un experto en accesibilidad, aplicaciones PWA y despliegues en GitHub Pages.
+
+Tu misión es DISEÑAR, IMPLEMENTAR, PROBAR Y DOCUMENTAR una aplicación web educativa real, funcional y atractiva para que yo aprenda inglés desde mi nivel actual, aproximadamente A1/A1+, hasta alcanzar competencias cercanas al nivel B2 del MCER (Marco Común Europeo de Referencia).
+
+No quiero únicamente un plan, una maqueta, un documento de recomendaciones ni un prototipo visual. Quiero una aplicación funcional con contenido educativo real, lecciones guiadas, ejercicios interactivos, seguimiento del progreso y un sistema de aprendizaje coherente.
+
+Debes trabajar directamente sobre los archivos del proyecto cuando tengas acceso al entorno de desarrollo.
+
+No te limites a describir código que debería escribirse: implementa el proyecto, ejecútalo, comprueba su funcionamiento y corrige los errores que encuentres.
+
+## 2. CONTEXTO DEL ESTUDIANTE
+
+Diseña el curso para una persona hispanohablante de Colombia con estas características:
+
+- Nivel actual aproximado: A1/A1+.
+- Objetivo: desarrollar un inglés práctico para conversar, comprender a otras personas, trabajar en entornos tecnológicos y prepararse para oportunidades laborales remotas.
+- Intereses: programación, desarrollo de software, tecnología, soporte técnico, trabajo remoto y situaciones de la vida cotidiana.
+- Tiempo disponible: 30 minutos diarios.
+- Preferencia de pronunciación: inglés estadounidense.
+- Necesita instrucciones en español al principio, con una transición progresiva hacia el inglés.
+- Aprende mejor con ejemplos concretos, ejercicios breves, retroalimentación y práctica guiada.
+- Se aburre cuando los ejercicios son repetitivos, excesivamente largos o consisten en seleccionar respuestas obvias.
+- Puede completar ejercicios con ayuda, pero tiene dificultades para recordar las palabras y construir frases cuando desaparecen las pistas.
+- Necesita desarrollar la capacidad de hablar sin guiones, sin traducciones visibles y sin depender de una aplicación que le sugiera las respuestas.
+- Prefiere una experiencia clara, práctica, visual, dinámica y fácil de utilizar desde el celular.
+
+La aplicación debe abordar específicamente el problema de reconocer una respuesta correcta sin poder producirla espontáneamente.
+
+La prioridad no es completar muchas lecciones, sino aprender a utilizar activamente el idioma.
+
+## 3. PRINCIPIO PEDAGÓGICO FUNDAMENTAL
+
+Construye el curso alrededor de esta secuencia:
+
+1. Comprender una expresión en contexto.
+2. Escucharla y reconocer su pronunciación.
+3. Entender su significado y estructura.
+4. Repetirla en voz alta.
+5. Recuperarla de la memoria sin verla.
+6. Utilizarla para crear frases nuevas.
+7. Responder preguntas sin opciones de respuesta.
+8. Utilizarla en una conversación o situación simulada.
+9. Recuperarla días después mediante repetición espaciada.
+10. Demostrar que puede utilizarse con suficiente independencia antes de considerarla dominada.
+
+No permitas que el estudiante avance simplemente pulsando botones de «Siguiente» y «Completar».
+
+Distingue claramente entre:
+
+- Reconocer una respuesta.
+- Recordar una respuesta con una pista.
+- Producir una respuesta sin ayuda.
+- Utilizarla espontáneamente en un contexto diferente.
+
+La última categoría debe tener mayor peso en la evaluación del dominio.
+
+La dificultad debe adaptarse progresivamente: primero se proporcionan modelos y pistas; después se retiran gradualmente.
+
+No confundas dificultad con frustración. Si el estudiante no puede responder, proporciona una pista pequeña, después una ayuda mayor y finalmente un ejemplo. Tras mostrar la solución, exige volver a intentarlo sin verla.
+
+## 4. TECNOLOGÍAS Y RESTRICCIONES
+
+Utiliza una arquitectura sencilla, mantenible y gratuita:
+
+- React.
+- TypeScript.
+- Vite.
+- CSS moderno o Tailwind CSS, si su instalación resulta conveniente.
+- React Router únicamente si realmente se necesita.
+- Git y GitHub.
+- GitHub Pages para el despliegue.
+- PWA instalable para utilizar la aplicación desde la pantalla de inicio del celular.
+- localStorage o IndexedDB para guardar el progreso.
+- Web Speech API para síntesis de voz y, cuando esté disponible, reconocimiento de voz.
+- Archivos JSON o módulos TypeScript para almacenar el contenido educativo.
+
+Restricciones importantes:
+
+- No requieras un backend para las funciones esenciales.
+- No requieras suscripciones, API keys, servicios de pago ni cuentas externas.
+- No expongas secretos en el código.
+- No dependas de servicios externos para conservar el progreso.
+- El curso debe seguir funcionando sin conexión cuando sus recursos y lecciones ya estén almacenados en el dispositivo.
+- La voz y el reconocimiento de voz pueden depender del navegador y del dispositivo. Detecta sus capacidades y proporciona alternativas cuando no estén disponibles.
+- No afirmes que la pronunciación del estudiante es correcta únicamente porque el reconocimiento de voz transcribió una frase.
+- Utiliza rutas relativas compatibles con GitHub Pages y configura correctamente la base de Vite.
+- Implementa el manifiesto PWA, iconos y un service worker funcional. Evita estrategias de caché que mantengan versiones antiguas indefinidamente.
+- No incluyas funcionalidades que parezcan operativas pero no funcionen realmente.
+
+Antes de instalar dependencias, inspecciona el proyecto existente. Si está vacío, crea la estructura necesaria. Si ya contiene código útil, conserva lo que corresponda.
+
+## 5. EXPERIENCIA VISUAL Y DISEÑO UX/UI
+
+Diseña una interfaz moderna, atractiva y profesional, comparable en claridad a una buena aplicación educativa comercial, sin copiar marcas ni diseños propietarios.
+
+La interfaz debe ser mobile-first y funcionar especialmente bien en un teléfono Android.
+
+Características:
+
+- Diseño limpio, agradable y poco recargado.
+- Tarjetas visuales con jerarquía clara.
+- Tipografía legible.
+- Botones suficientemente grandes para utilizar con los dedos.
+- Indicadores de avance visibles.
+- Animaciones discretas y rápidas.
+- Estados claros para respuestas correctas, incorrectas y pendientes.
+- Modo claro y oscuro.
+- Navegación sencilla.
+- Accesibilidad mediante teclado y lectores de pantalla.
+- No depender exclusivamente de colores para comunicar resultados.
+- Evitar pantallas con demasiado texto.
+- Evitar interfaces que parezcan formularios interminables.
+- No utilizar elementos decorativos que distraigan del aprendizaje.
+
+Toda la aplicación debe estar en español al principio, pero el contenido que se aprende debe estar en inglés estadounidense.
+
+A medida que el estudiante avance, aumenta progresivamente el uso del inglés en las instrucciones.
+
+## 6. PANTALLA PRINCIPAL
+
+Crea un dashboard que muestre:
+
+- Saludo y objetivo de aprendizaje.
+- Nivel actual estimado.
+- Nivel objetivo B2.
+- Módulo actual.
+- Próxima lección recomendada.
+- Botón principal «Continuar aprendiendo».
+- Tiempo de práctica de hoy.
+- Progreso general del curso.
+- Progreso por comprensión auditiva, expresión oral, lectura y escritura.
+- Número de chunks aprendidos, en práctica y dominados.
+- Repasos pendientes.
+- Racha de días de estudio, sin castigar al estudiante si descansa.
+- Historial de los últimos siete días.
+- Próximo hito del curso.
+- Recomendación personalizada basada en errores y repasos pendientes.
+
+El progreso debe reflejar aprendizaje demostrado, no solamente el número de pantallas visitadas.
+
+Incluye una vista de ruta de aprendizaje donde se visualicen los módulos completados, actuales y futuros.
+
+## 7. DIAGNÓSTICO INICIAL
+
+Antes de comenzar, ofrece una prueba diagnóstica breve de entre 5 y 10 minutos.
+
+Evalúa de forma preliminar:
+
+- Vocabulario frecuente.
+- Comprensión de frases sencillas.
+- Construcción de oraciones.
+- Comprensión auditiva cuando sea posible.
+- Capacidad para producir frases sin opciones.
+- Conocimientos gramaticales esenciales.
+- Respuesta a preguntas personales básicas.
+
+La prueba debe incluir preguntas abiertas, no solo selección múltiple.
+
+Al finalizar:
+
+- Presenta un perfil de fortalezas y dificultades.
+- Establece un punto de partida provisional.
+- Recomienda la primera lección.
+- Guarda el resultado.
+- Permite repetir el diagnóstico posteriormente para comparar resultados.
+
+No declares que una prueba breve certifica un nivel MCER. Preséntalo como una estimación orientativa.
+
+## 8. ESTRUCTURA DEL CURSO
+
+Construye una ruta progresiva desde A1 hasta B2, dividida en módulos, unidades y lecciones.
+
+Organiza los contenidos por funciones comunicativas, situaciones reales y competencias lingüísticas. No organices el curso exclusivamente por reglas gramaticales.
+
+Incluye como mínimo las siguientes áreas:
+
+### Etapa A: Fundamentos A1
+
+- Presentarse y dar información personal.
+- Países, nacionalidades, ocupaciones y estudios.
+- Verbo to be.
+- Pronombres y posesivos.
+- Presente simple.
+- Rutinas y horarios.
+- Preguntas con what, where, when, who, why y how.
+- Do y does.
+- There is y there are.
+- Artículos, plurales y cuantificadores básicos.
+- Gustos, preferencias y habilidades.
+- Familia, hogar y ciudad.
+- Comida, compras, precios y direcciones.
+- Can, can't y solicitudes sencillas.
+- Pronunciación de sonidos frecuentes.
+- Comprensión de conversaciones cortas.
+
+### Etapa B: Desarrollo A2
+
+- Pasado simple y pasado de to be.
+- Verbos regulares e irregulares frecuentes.
+- Futuro con going to y will en contextos habituales.
+- Present continuous.
+- Comparativos y superlativos.
+- Present perfect introductorio y su contraste con el pasado simple.
+- Planes, experiencias y acontecimientos.
+- Expresar opiniones, preferencias y razones.
+- Invitaciones, peticiones, disculpas y agradecimientos.
+- Conversaciones telefónicas y mensajes.
+- Viajes, salud cotidiana y resolución de problemas.
+- Conectores básicos.
+- Comprensión de relatos y diálogos más largos.
+
+### Etapa C: Consolidación B1
+
+- Explicar experiencias, objetivos y decisiones.
+- Narrar acontecimientos con claridad.
+- Present perfect y pasado simple.
+- Present perfect continuous cuando corresponda.
+- Condicionales cero, primero y segundo.
+- Modales de obligación, posibilidad, consejo y deducción básica.
+- Voz pasiva frecuente.
+- Reported speech introductorio.
+- Oraciones relativas.
+- Conectores para argumentar.
+- Expresar acuerdo, desacuerdo y matices.
+- Resolver malentendidos.
+- Conversaciones más largas sin preparación.
+- Comprender audio natural de dificultad intermedia.
+- Redactar correos y textos coherentes.
+- Entrevistas laborales y presentación profesional.
+
+### Etapa D: Consolidación B2
+
+- Defender y matizar opiniones.
+- Argumentar a favor y en contra.
+- Comparar alternativas y justificar decisiones.
+- Expresar hipótesis, probabilidad, certeza y duda.
+- Condicionales mixtos cuando sean pertinentes.
+- Modales en pasado.
+- Estructuras pasivas y causativas frecuentes.
+- Reported speech avanzado.
+- Inversión y estructuras enfáticas de uso relevante.
+- Collocations y expresiones naturales.
+- Phrasal verbs frecuentes en contextos reales.
+- Registro formal e informal.
+- Comprensión de diferentes acentos estadounidenses.
+- Comprensión de conversaciones extensas.
+- Presentaciones y explicaciones estructuradas.
+- Debates y conversaciones espontáneas.
+- Correos profesionales y textos argumentativos.
+- Entrevistas laborales en inglés.
+- Explicar problemas técnicos y soluciones.
+- Participar en reuniones de trabajo.
+- Pedir aclaraciones y reformular ideas.
+- Comprender y resumir contenidos de dificultad B2.
+
+No enseñes todos estos contenidos de golpe. Introduce cada concepto cuando el estudiante disponga de los conocimientos necesarios para comprenderlo.
+
+Define los prerrequisitos y comprueba que las lecciones se desbloqueen en el orden adecuado.
+
+## 9. CHUNKS: EL NÚCLEO DEL APRENDIZAJE
+
+Construye una biblioteca estructurada de expresiones frecuentes y reutilizables.
+
+Un chunk es una expresión que se aprende como una unidad, por ejemplo:
+
+- I want to...
+- I'm trying to...
+- I'm looking for...
+- I need to...
+- I have to...
+- I'm going to...
+- I used to...
+- I've been...
+- It depends on...
+- The reason is that...
+- As far as I know...
+- What I mean is...
+- Could you explain that again?
+- I'm not sure how to...
+- Let me think for a second.
+- From my point of view...
+- I see what you mean, but...
+- One of the main reasons is...
+- If I had to choose, I would...
+- What I would suggest is...
+
+Crea una biblioteca inicial amplia, organizada por nivel, función comunicativa y situación.
+
+Incluye como objetivo de diseño una biblioteca de al menos 600 chunks y collocations útiles, pero prioriza la calidad y la reutilización sobre alcanzar una cifra artificial.
+
+No generes frases aleatorias para rellenar la biblioteca. Cada expresión debe tener una función clara, una traducción natural, ejemplos apropiados para el nivel y ejercicios relacionados.
+
+Cada chunk debe contener:
+
+- Identificador único.
+- Expresión en inglés.
+- Significado natural en español.
+- Nivel MCER estimado.
+- Categoría comunicativa.
+- Ejemplo contextualizado.
+- Audio o síntesis de voz cuando esté disponible.
+- Variante con palabras intercambiables.
+- Errores frecuentes de hispanohablantes.
+- Una pregunta para recuperar la expresión.
+- Un ejercicio de producción libre.
+- Fecha del último repaso.
+- Próxima fecha de repaso.
+- Nivel de dominio.
+- Historial de errores relevantes.
+
+Enséñame a sustituir componentes de una estructura.
+
+Ejemplo:
+
+I want to learn English.
+I want to improve my pronunciation.
+I want to find a job.
+I want to become a better developer.
+
+Después, pide al estudiante que construya una frase propia.
+
+Evita traducir literalmente expresiones idiomáticas. Explica cuándo se utilizan y cuándo no.
+
+## 10. FORMATO OBLIGATORIO DE CADA LECCIÓN
+
+Diseña cada lección para una duración aproximada de 30 minutos.
+
+La duración debe poder ajustarse si el estudiante necesita más tiempo, sin penalizarlo.
+
+### Fase 1. Calentamiento y recuperación — 4 minutos
+
+Presenta entre tres y cinco elementos previamente estudiados.
+
+Intenta que el estudiante los recuerde sin ver las respuestas.
+
+Incluye elementos vencidos de la repetición espaciada.
+
+### Fase 2. Comprensión contextual — 5 minutos
+
+Presenta una conversación breve o situación real.
+
+Incluye audio cuando sea posible, transcripción y traducción bajo demanda.
+
+Primero, intenta que el estudiante comprenda el significado general.
+
+Después, permite revisar expresiones importantes.
+
+### Fase 3. Chunks nuevos — 5 minutos
+
+Introduce entre tres y cinco chunks nuevos.
+
+Para cada uno:
+
+1. Explica su significado.
+2. Muestra su pronunciación mediante audio o síntesis de voz.
+3. Proporciona un ejemplo.
+4. Explica cómo reutilizarlo.
+5. Señala un error frecuente.
+6. Comprueba que el estudiante lo comprende.
+
+No introduzcas demasiadas expresiones nuevas en una sola sesión.
+
+### Fase 4. Recuperación activa — 5 minutos
+
+Oculta progresivamente las respuestas.
+
+Ejercicios posibles:
+
+- Mostrar el significado y pedir la frase en inglés.
+- Mostrar el inicio de una frase y pedir que se complete.
+- Formular una pregunta que requiera el chunk.
+- Pedir que se reconstruya una oración después de escucharla.
+- Recordar una expresión de una lección anterior.
+
+No permitas que las opciones múltiples sean la actividad predominante.
+
+### Fase 5. Producción libre — 6 minutos
+
+El estudiante debe hablar o escribir en inglés sin disponer de una respuesta modelo visible.
+
+Propón preguntas personales, cambios de contexto y situaciones comunicativas.
+
+Ejemplos:
+
+- Tell me about your daily routine.
+- What are you learning these days?
+- Why do you want to improve your English?
+- Describe a problem you solved recently.
+
+Ajusta las preguntas al nivel.
+
+Permite responder mediante texto o voz. Si el reconocimiento de voz no funciona, utiliza grabación de audio cuando sea compatible o respuestas escritas como alternativa.
+
+### Fase 6. Evaluación y cierre — 5 minutos
+
+Evalúa lo aprendido mediante preguntas nuevas, no mediante la repetición exacta de los ejercicios anteriores.
+
+Muestra:
+
+- Qué expresiones se recuperaron correctamente.
+- Cuáles necesitaron pistas.
+- Cuáles todavía no se recuerdan.
+- Qué errores conviene corregir.
+- Qué se repasará mañana.
+- Una frase o idea que el estudiante pueda expresar por sí mismo.
+
+La sesión debe terminar con una pequeña victoria comunicativa: expresar algo útil en inglés sin leer un guion.
+
+El tiempo asignado a cada fase es orientativo. Si una actividad requiere una respuesta extensa, no sacrifiques la calidad pedagógica para cumplir un cronómetro rígido.
+
+## 11. REPETICIÓN ESPACIADA Y MEMORIA
+
+Implementa un sistema de revisión local.
+
+Como calendario inicial, utiliza intervalos aproximados de:
+
+- Primera revisión: el mismo día.
+- Segunda revisión: un día después.
+- Tercera revisión: tres días después.
+- Cuarta revisión: siete días después.
+- Quinta revisión: catorce días después.
+- Sexta revisión: treinta días después.
+
+Ajusta los intervalos según el rendimiento.
+
+Si el estudiante recuerda una expresión espontáneamente, aumenta gradualmente el intervalo.
+
+Si falla, ofrece una pista, muestra el ejemplo y programa un nuevo intento más cercano.
+
+No marques como dominada una expresión simplemente porque se seleccionó correctamente una opción múltiple.
+
+Considera el grado de ayuda requerido, la capacidad de producir una frase y el uso en contextos diferentes.
+
+Incluye una pantalla de repasos pendientes con sesiones breves que puedan completarse incluso cuando el estudiante tenga poco tiempo.
+
+El sistema debe distinguir entre elementos nuevos, en aprendizaje, en repaso y dominados provisionalmente.
+
+## 12. EVALUACIÓN Y PROGRESO REAL
+
+Implementa un sistema de progreso por competencias.
+
+Mide por separado:
+
+- Vocabulario y chunks activos.
+- Comprensión auditiva.
+- Comprensión lectora.
+- Expresión oral.
+- Escritura.
+- Gramática aplicada.
+- Fluidez y capacidad de mantener una conversación.
+
+No calcules un nivel B2 a partir de puntos acumulados, rachas o lecciones completadas.
+
+Crea evaluaciones al finalizar cada unidad y módulo, con ejercicios nuevos y situaciones comunicativas.
+
+Incluye:
+
+- Evaluaciones iniciales.
+- Evaluaciones de recuperación.
+- Evaluaciones acumulativas.
+- Pruebas de producción libre.
+- Simulaciones de conversaciones.
+- Pruebas de comprensión auditiva.
+- Redacción de textos.
+- Comparación del desempeño a lo largo del tiempo.
+
+El progreso debe mostrar gráficos sencillos por semana y por competencia.
+
+Incluye una sección «Antes podía / Ahora puedo» con evidencias concretas, como producir una presentación personal, narrar una experiencia o explicar un problema técnico.
+
+Cuando corresponda, identifica los descriptores del MCER que se están trabajando.
+
+La aplicación puede estimar el progreso, pero debe aclarar que no certifica oficialmente el nivel.
+
+## 13. CONVERSACIÓN INTERACTIVA
+
+Implementa un modo de conversación que permita practicar sin guiones.
+
+Debe incluir situaciones como:
+
+- Conocer a una persona.
+- Hablar de intereses y rutinas.
+- Pedir información.
+- Explicar un problema.
+- Hacer una llamada.
+- Participar en una entrevista.
+- Hablar sobre programación.
+- Resolver una incidencia de soporte técnico.
+- Explicar una decisión.
+- Defender una opinión.
+
+La aplicación debe presentar una pregunta en inglés, permitir una respuesta y después proporcionar retroalimentación.
+
+Si el estudiante se bloquea:
+
+1. Espera a que intente responder.
+2. Ofrece una pista contextual.
+3. Si sigue bloqueado, ofrece una estructura incompleta.
+4. Si es necesario, muestra una respuesta modelo.
+5. Pide una nueva respuesta con palabras propias.
+6. Repite el patrón en una situación diferente más adelante.
+
+No interrumpas continuamente cada error. Durante la conversación, prioriza la comunicación. Al terminar, selecciona los dos o tres errores más importantes.
+
+Incluye un modo de simulación en el que las preguntas cambien según la respuesta del estudiante. Cuando no exista una API de inteligencia artificial, utiliza diálogos ramificados y escenarios predefinidos de calidad.
+
+No presentes una conversación basada en respuestas predefinidas como si fuera una inteligencia artificial generativa.
+
+## 14. PRONUNCIACIÓN Y COMPRENSIÓN AUDITIVA
+
+Implementa:
+
+- Reproducción de frases mediante síntesis de voz.
+- Velocidad de reproducción ajustable.
+- Repetición de una frase.
+- Escucha sin transcripción.
+- Escucha con transcripción.
+- Dictados breves.
+- Ejercicios de identificación de palabras.
+- Práctica de ritmo, acentuación y contracciones.
+- Diferenciación de sonidos problemáticos para hispanohablantes.
+- Reconocimiento de voz cuando esté disponible.
+
+Prioriza expresiones estadounidenses naturales.
+
+Incluye frases con contracciones como I'm, don't, didn't, I've, we're y would've cuando el nivel lo permita.
+
+No exijas una pronunciación idéntica a la de un hablante nativo. Prioriza inteligibilidad, comprensión y capacidad de comunicarse.
+
+Si la síntesis de voz o el reconocimiento de voz no están disponibles, explica la limitación y ofrece un ejercicio alternativo.
+
+## 15. INGLÉS PARA TECNOLOGÍA Y EMPLEO
+
+Integra progresivamente un itinerario específico para mi objetivo profesional.
+
+Incluye:
+
+- Presentación personal en inglés.
+- Explicación de mi formación.
+- Descripción de proyectos de software.
+- Explicación sencilla de Java, APIs, bases de datos y desarrollo web.
+- Vocabulario de programación.
+- Explicación de errores técnicos.
+- Preguntas para aclarar requisitos.
+- Descripción de problemas y soluciones.
+- Comunicación en equipos remotos.
+- Participación en reuniones.
+- Solicitudes de ayuda.
+- Correos profesionales.
+- Entrevistas laborales.
+- Preguntas conductuales.
+- Presentaciones breves de proyectos.
+- Explicación de conocimientos y objetivos profesionales.
+
+No conviertas todo el curso en inglés técnico. La comunicación cotidiana debe seguir siendo prioritaria.
+
+## 16. VARIEDAD PARA EVITAR EL ABURRIMIENTO
+
+Alterna actividades para que la experiencia no parezca un cuestionario repetitivo.
+
+Incluye:
+
+- Diálogos.
+- Historias cortas.
+- Retos de memoria.
+- Reconstrucción de frases.
+- Respuestas rápidas.
+- Escenarios interactivos.
+- Descripciones de situaciones.
+- Preguntas personales.
+- Ejercicios de escucha.
+- Dictados.
+- Role-play.
+- Retos semanales.
+- Repasos acumulativos.
+- Misiones de conversación.
+- Ejercicios de reformulación.
+
+Introduce variedad sin sacrificar la repetición necesaria para consolidar la memoria.
+
+Evita recompensar únicamente la velocidad. Permite pensar antes de responder.
+
+Incluye logros por competencias reales y no solo por iniciar sesión.
+
+## 17. CONTENIDO EDUCATIVO REAL
+
+No entregues una aplicación vacía con módulos cuyos títulos prometan contenido que no existe.
+
+Implementa un conjunto inicial de lecciones completas y funcionales, suficiente para utilizar la aplicación desde el primer día.
+
+Crea una arquitectura de contenido que permita ampliar el curso sin modificar los componentes visuales.
+
+Cada lección debe incluir sus instrucciones, ejemplos, ejercicios, respuestas esperadas, explicaciones y criterios de evaluación.
+
+Todas las respuestas deben validarse de forma razonable: aceptar variantes correctas, contracciones y diferencias de puntuación cuando corresponda.
+
+No uses una comparación de cadenas excesivamente estricta que rechace respuestas válidas.
+
+Incluye pruebas de contenido para detectar identificadores duplicados, referencias inexistentes, preguntas sin respuesta y lecciones sin ejercicios.
+
+Genera contenido auténtico y progresivo. No repitas la misma plantilla cambiando únicamente una palabra.
+
+Para llegar a una biblioteca extensa, organiza el contenido por lotes coherentes y amplíalo gradualmente. No sacrifiques calidad por generar cientos de elementos superficiales.
+
+## 18. FUNCIONAMIENTO Y PERSISTENCIA
+
+Guarda localmente:
+
+- Configuración del estudiante.
+- Diagnóstico inicial.
+- Módulo y lección actuales.
+- Lecciones completadas.
+- Resultados de ejercicios.
+- Historial de respuestas.
+- Errores frecuentes.
+- Dominio de cada chunk.
+- Fechas de revisión.
+- Tiempo de estudio.
+- Historial de evaluaciones.
+- Preferencias de voz y visualización.
+
+El progreso debe persistir al cerrar el navegador y volver a abrir la aplicación.
+
+Incluye funciones para exportar e importar una copia de seguridad en JSON, con validación antes de restaurarla.
+
+Advierte que el almacenamiento local no se sincroniza automáticamente entre dispositivos y que borrar los datos del navegador puede eliminar el progreso.
+
+No implementes cuentas de usuario ni sincronización en la nube como requisito inicial.
+
+## 19. ARQUITECTURA Y CALIDAD DEL CÓDIGO
+
+Organiza el proyecto en módulos claros.
+
+Como mínimo, separa:
+
+- Componentes visuales.
+- Pantallas.
+- Motor de lecciones.
+- Modelos y tipos TypeScript.
+- Contenido educativo.
+- Sistema de repetición espaciada.
+- Gestión del progreso.
+- Evaluación.
+- Audio y reconocimiento de voz.
+- Almacenamiento local.
+- Utilidades.
+- Pruebas.
+
+Evita crear un único componente gigante con toda la aplicación.
+
+Aplica principios de responsabilidad única, tipado consistente y reutilización razonable.
+
+Implementa:
+
+- Manejo de errores.
+- Estados de carga cuando correspondan.
+- Validación de datos.
+- Accesibilidad.
+- Diseño adaptable.
+- Pruebas de las funciones críticas.
+- Mensajes de error comprensibles.
+- Una pantalla de recuperación si el progreso local está dañado.
+
+No añadas dependencias innecesarias.
+
+## 20. DESPLIEGUE EN GITHUB PAGES
+
+Prepara el proyecto para desplegarse gratuitamente.
+
+Debes:
+
+1. Crear el proyecto y su estructura.
+2. Instalar las dependencias necesarias.
+3. Configurar correctamente Vite para GitHub Pages.
+4. Crear los scripts de desarrollo, construcción y pruebas.
+5. Configurar GitHub Actions para desplegar desde la rama principal.
+6. Añadir un archivo README.md en español con instrucciones paso a paso.
+7. Explicar cómo crear el repositorio y subir el proyecto.
+8. Explicar cómo activar o verificar GitHub Pages.
+9. Explicar cómo abrir la aplicación desde Android.
+10. Explicar cómo instalarla en la pantalla de inicio.
+11. Documentar las limitaciones del modo sin conexión y del reconocimiento de voz.
+
+Si dispones de herramientas para acceder a GitHub, puedes ayudar con la configuración, pero no inventes credenciales ni afirmes haber publicado el sitio si no se ha confirmado el despliegue.
+
+No incluyas tokens personales en archivos del repositorio.
+
+## 21. PRUEBAS OBLIGATORIAS
+
+Antes de considerar terminado el trabajo:
+
+- Ejecuta la instalación de dependencias.
+- Ejecuta las pruebas automatizadas.
+- Ejecuta el proceso de construcción.
+- Corrige los errores de TypeScript.
+- Comprueba las rutas.
+- Comprueba el almacenamiento del progreso.
+- Comprueba la navegación entre módulos.
+- Comprueba que las lecciones se desbloquean correctamente.
+- Comprueba que los repasos se programan correctamente.
+- Comprueba la exportación e importación del progreso.
+- Comprueba el diseño en una pantalla móvil.
+- Comprueba el comportamiento cuando no hay conexión.
+- Comprueba los fallos posibles de las funciones de audio.
+- Verifica que las funciones principales no dependan de una API externa.
+
+No declares una prueba superada si no la has ejecutado.
+
+## 22. PLAN DE IMPLEMENTACIÓN
+
+Trabaja por fases, sin detenerte después de presentar el plan.
+
+Fase 1: inspeccionar el entorno y definir la arquitectura.
+
+Fase 2: construir la interfaz, navegación y diseño adaptable.
+
+Fase 3: implementar las lecciones, los ejercicios y el motor pedagógico.
+
+Fase 4: implementar la biblioteca de chunks y la repetición espaciada.
+
+Fase 5: implementar progreso, evaluaciones y persistencia.
+
+Fase 6: añadir voz, PWA y funcionamiento sin conexión.
+
+Fase 7: añadir y validar el contenido inicial.
+
+Fase 8: ejecutar pruebas, corregir errores y comprobar la compilación.
+
+Fase 9: documentar el proyecto y preparar el despliegue.
+
+Si existe un límite de contexto o tiempo, prioriza primero una aplicación completa y funcional con contenido de alta calidad, persistencia y despliegue correcto. Después amplía el contenido por lotes sin dejar el proyecto roto.
+
+Al terminar cada fase, comprueba el funcionamiento antes de continuar.
+
+No me pidas confirmación para cada decisión técnica menor. Elige soluciones razonables y continúa.
+
+Si encuentras un impedimento real, explícame cuál es, implementa lo que sí sea posible y proporciona una alternativa concreta.
+
+## 23. CRITERIOS DE ACEPTACIÓN
+
+El proyecto solo puede considerarse listo para uso inicial cuando:
+
+- Puedo comenzar una lección desde el celular.
+- Puedo completar una sesión guiada de unos 30 minutos.
+- Puedo practicar sin ver constantemente la respuesta.
+- Puedo escuchar frases y repetirlas.
+- Puedo producir mis propias frases.
+- Puedo repasar contenido de días anteriores.
+- El sistema recuerda mi progreso después de cerrar la aplicación.
+- Puedo ver mi avance por módulos y competencias.
+- Puedo identificar qué expresiones todavía no domino.
+- Puedo realizar evaluaciones acumulativas.
+- La aplicación no requiere una API de pago.
+- La construcción termina correctamente.
+- Existe una guía de despliegue para GitHub Pages.
+- El contenido inicial es real, coherente y utilizable.
+
+El objetivo final es disponer de una herramienta de aprendizaje que pueda utilizar diariamente y que me ayude a desarrollar un inglés cada vez más independiente.
+
+No quiero sentir que soy bueno completando ejercicios, pero incapaz de hablar cuando estoy solo.
+
+Quiero aprender a comprender, recordar, construir frases y comunicarme de verdad.
+
+Comienza inspeccionando el entorno y ejecutando la primera fase. Después, continúa con la implementación real hasta donde permita el entorno disponible.
