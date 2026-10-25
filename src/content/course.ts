@@ -18,8 +18,10 @@ import * as c1 from './modules/c1';
 import * as c2 from './modules/c2';
 import * as c3 from './modules/c3';
 import * as c4 from './modules/c4';
+import * as d1 from './modules/d1';
+import * as d2 from './modules/d2';
 
-const MODULE_FILES: { chunks: Chunk[]; mod: Module }[] = [a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, b6, c1, c2, c3, c4];
+const MODULE_FILES: { chunks: Chunk[]; mod: Module }[] = [a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, b6, c1, c2, c3, c4, d1, d2];
 
 export const MODULES: Module[] = MODULE_FILES.map((f) => f.mod);
 export const CHUNKS: Chunk[] = MODULE_FILES.flatMap((f) => f.chunks);
