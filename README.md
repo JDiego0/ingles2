@@ -13,10 +13,10 @@ El objetivo no es completar ejercicios, sino **poder producir el idioma sin pist
 | Área | Contenido |
 |---|---|
 | Ruta | 4 etapas (A1 · A2 · B1 · B2), **19 módulos, 38 unidades, 76 lecciones completas** con prerrequisitos |
-| Chunks | **376 expresiones** (A1: 96 · A2: 114 · B1: 86 · B2: 80), cada una con significado, ejemplo, variantes para sustituir piezas, error frecuente de hispanohablantes, pregunta de recuperación y tarea de producción |
+| Chunks | **603 expresiones** (A1: 151 · A2: 174 · B1: 142 · B2: 136): 376 enseñadas en las lecciones y 227 extra en la biblioteca, cada una con significado, ejemplo, variantes para sustituir piezas, error frecuente de hispanohablantes, pregunta de recuperación y tarea de producción |
 | Ejercicios escritos | 933 (más los que el motor genera a partir de cada chunk) |
 | Evaluaciones | Diagnóstico inicial (15 preguntas, con respuestas abiertas), evaluación por unidad, evaluación acumulativa por módulo y evaluación acumulativa general |
-| Conversación | 11 situaciones ramificadas (conocer a alguien, rutinas, cafetería, soporte técnico, planes, llamada, stand-up, decisión profesional, entrevista, defender una opinión, explicar un incidente) |
+| Conversación | 12 situaciones ramificadas (conocer a alguien, rutinas, cafetería, soporte técnico, planes, llamada, stand-up, decisión profesional, entrevista, defender una opinión, explicar un incidente) |
 | Pronunciación | 8 grupos de pares mínimos para hispanohablantes, 14 ejercicios de ritmo/contracciones, dictados con tus propias expresiones |
 
 ### Cada lección (≈ 30 min, sin cronómetro rígido)
@@ -171,4 +171,4 @@ La app usa rutas relativas (`base: './'` y rutas con `#`), así que funciona con
 
 Sintaxis de respuestas aceptadas: `{a|b}` alternativas, `(x)` opcional, `*` cualquier texto, `#` un número. Ej.: `"I'm # years old"`, `"Could you repeat that(, please)?"`.
 
-El objetivo de diseño de la biblioteca es ~600 chunks; la versión actual tiene 376 revisados uno a uno, priorizando calidad y reutilización. Se puede ampliar por lotes sin tocar la interfaz.
+Las expresiones extra viven en `src/content/library/` (un lote por etapa) y se asignan a un módulo; la interfaz no cambia al ampliarlas.
