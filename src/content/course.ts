@@ -23,10 +23,16 @@ import * as d2 from './modules/d2';
 import * as d3 from './modules/d3';
 import * as d4 from './modules/d4';
 
+import { LIBRARY } from './library';
+
 const MODULE_FILES: { chunks: Chunk[]; mod: Module }[] = [a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, b6, c1, c2, c3, c4, d1, d2, d3, d4];
 
-export const MODULES: Module[] = MODULE_FILES.map((f) => f.mod);
-export const CHUNKS: Chunk[] = MODULE_FILES.flatMap((f) => f.chunks);
+/** Los lotes de la biblioteca se añaden como expresiones extra de su módulo. */
+export const MODULES: Module[] = MODULE_FILES.map(({ mod }) => {
+  const extra = LIBRARY.filter((b) => b.module === mod.id).flatMap((b) => b.chunks.map((c) => c.id));
+  return extra.length ? { ...mod, extraChunks: [...(mod.extraChunks ?? []), ...extra] } : mod;
+});
+export const CHUNKS: Chunk[] = [...MODULE_FILES.flatMap((f) => f.chunks), ...LIBRARY.flatMap((b) => b.chunks)];
 
 export const chunkById = new Map(CHUNKS.map((c) => [c.id, c]));
 export const moduleById = new Map(MODULES.map((m) => [m.id, m]));
