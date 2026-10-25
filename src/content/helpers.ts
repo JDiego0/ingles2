@@ -25,6 +25,9 @@ type ChunkInput = Omit<Chunk, 'example' | 'errors'> & {
   err: [string, string, string][];
 };
 
+/** Instrucción bilingüe: se muestra según el modo de idioma (etapa B en adelante). */
+export const bi = (en: string, es: string) => ({ en, es });
+
 export const chunk = ({ ex, err, ...rest }: ChunkInput): Chunk => ({
   ...rest,
   example: { en: ex[0], es: ex[1] },
@@ -40,7 +43,7 @@ export const type = (
   id: string,
   prompt: Instr,
   accept: string[],
-  o: Opts & { context?: string; keys?: string[]; hint?: string; explain?: string } = {},
+  o: Opts & { context?: string; keys?: string[]; anyOf?: string[]; hint?: string; explain?: string } = {},
 ): TypeExercise => ({ kind: 'type', id, prompt, accept, skills: o.skills ?? ['writing', 'vocabulary'], ...o });
 
 export const choice = (

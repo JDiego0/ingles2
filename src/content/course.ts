@@ -4,8 +4,15 @@
  */
 import type { Chunk, Exercise, Lesson, Module, Unit } from '../types/content';
 import * as a1 from './modules/a1';
+import * as a2 from './modules/a2';
+import * as a3 from './modules/a3';
+import * as a4 from './modules/a4';
+import * as a5 from './modules/a5';
+import * as b1 from './modules/b1';
+import * as b2 from './modules/b2';
+import * as b3 from './modules/b3';
 
-const MODULE_FILES: { chunks: Chunk[]; mod: Module }[] = [a1];
+const MODULE_FILES: { chunks: Chunk[]; mod: Module }[] = [a1, a2, a3, a4, a5, b1, b2, b3];
 
 export const MODULES: Module[] = MODULE_FILES.map((f) => f.mod);
 export const CHUNKS: Chunk[] = MODULE_FILES.flatMap((f) => f.chunks);

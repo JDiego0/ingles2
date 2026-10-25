@@ -163,6 +163,20 @@ describe('ejercicios', () => {
     for (const e of allExercises()) checkExercise(e);
   });
 
+  it('las plantillas de respuesta están bien formadas', () => {
+    const bad: string[] = [];
+    for (const e of allExercises()) {
+      const list = e.kind === 'type' ? e.accept : e.kind === 'listen' || e.kind === 'order' ? e.accept ?? [] : [];
+      for (const a of list) {
+        // «|» solo dentro de {…}; paréntesis y llaves equilibrados; sin anidar.
+        if (/\([^)]*\|[^)]*\)/.test(a) || /\{[^}]*[({][^}]*\}/.test(a)) bad.push(`${e.id}: ${a}`);
+        if ((a.match(/\(/g) ?? []).length !== (a.match(/\)/g) ?? []).length) bad.push(`${e.id}: ${a}`);
+        if ((a.match(/\{/g) ?? []).length !== (a.match(/\}/g) ?? []).length) bad.push(`${e.id}: ${a}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
   it('la primera respuesta aceptada de cada ejercicio se reconoce como correcta', () => {
     for (const e of allExercises()) {
       if (e.kind !== 'type') continue;
