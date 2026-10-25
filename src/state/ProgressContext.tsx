@@ -10,7 +10,7 @@ import { detectErrors } from '../engine/errors';
 import { usesChunk } from '../engine/generate';
 import { wordCount } from '../engine/answer';
 import { chunkById } from '../content/course';
-import { createInitialState, saveState } from '../storage/store';
+import { createInitialState, loadState, saveState, STORAGE_KEY } from '../storage/store';
 import type { ExerciseResult } from '../components/exercises/types';
 
 export interface Actions {
@@ -54,24 +54,55 @@ export function ProgressProvider({ initial, children }: { initial: ProgressState
   const [saveFailed, setSaveFailed] = useState(false);
   const latest = useRef(state);
   latest.current = state;
+  /** Hay cambios de ESTA pestaña sin guardar. Evita que una pestaña antigua sobrescriba a otra. */
+  const dirty = useRef(false);
+  /** El último cambio vino de otra pestaña: no hace falta volver a guardarlo. */
+  const fromOtherTab = useRef(false);
+  const first = useRef(true);
 
-  useEffect(() => {
-    const id = setTimeout(() => setSaveFailed(!saveState(state)), 300);
-    return () => clearTimeout(id);
-  }, [state]);
-
-  useEffect(() => {
-    const flush = () => {
-      if (document.visibilityState === 'hidden') saveState(latest.current);
-    };
-    const onHide = () => saveState(latest.current);
-    document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', onHide);
-    return () => {
-      document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', onHide);
-    };
+  const flushNow = useCallback(() => {
+    if (!dirty.current) return;
+    const ok = saveState(latest.current);
+    if (ok) dirty.current = false;
+    setSaveFailed(!ok);
   }, []);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (fromOtherTab.current) {
+      fromOtherTab.current = false;
+      return;
+    }
+    dirty.current = true;
+    const id = setTimeout(flushNow, 300);
+    return () => clearTimeout(id);
+  }, [state, flushNow]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushNow();
+    };
+    // Si otra pestaña guarda progreso, esta pestaña lo adopta (en lugar de pisarlo después).
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue || dirty.current) return;
+      const r = loadState();
+      if (r.ok && !r.fresh) {
+        fromOtherTab.current = true;
+        setState(r.state);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flushNow);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flushNow);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [flushNow]);
 
   const recordFreeText = useCallback<Actions['recordFreeText']>((ref, text, o) => {
     const now = Date.now();

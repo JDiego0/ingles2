@@ -17,7 +17,7 @@ export function meaningExercise(c: Chunk, prefix: string): TypeExercise {
   return {
     kind: 'type',
     id: `${prefix}.meaning.${c.id}`,
-    prompt: `¿Cómo dices en inglés: «${c.es}»?`,
+    prompt: { es: `¿Cómo dices en inglés: «${c.es}»?`, en: `Say it in English: «${c.es}»` },
     accept: [asTemplate(c.en), c.example.en],
     anyOf: chunkPhrases(c),
     skills: ['vocabulary', 'writing'],
@@ -35,7 +35,7 @@ export function askExercise(c: Chunk, prefix: string): TypeExercise {
     anyOf: chunkPhrases(c),
     skills: ['fluency', 'writing'],
     chunks: [c.id],
-    explain: `Usa «${c.en}» en tu respuesta.`,
+    explain: `Usa «${c.en}» en tu respuesta. / Use «${c.en}» in your answer.`,
   };
 }
 
@@ -61,7 +61,7 @@ export function clozeExercise(c: Chunk, prefix: string): TypeExercise | null {
   return {
     kind: 'type',
     id: `${prefix}.cloze.${c.id}`,
-    prompt: `Completa la frase. Significa: «${c.example.es}»`,
+    prompt: { es: `Completa la frase. Significa: «${c.example.es}»`, en: `Complete the sentence. It means: «${c.example.es}»` },
     context: c.example.en.replace(piece, blanks),
     accept: [piece, c.example.en],
     skills: ['vocabulary', 'grammar'],
@@ -76,7 +76,7 @@ export function rebuildExercise(c: Chunk, prefix: string): OrderExercise | null 
   return {
     kind: 'order',
     id: `${prefix}.rebuild.${c.id}`,
-    prompt: 'Escucha y reconstruye la frase.',
+    prompt: { es: 'Escucha y reconstruye la frase.', en: 'Listen and rebuild the sentence.' },
     sentence: c.example.en,
     audio: true,
     skills: ['listening', 'grammar'],
@@ -89,7 +89,7 @@ export function substitutionExercise(c: Chunk, prefix: string): TypeExercise {
   return {
     kind: 'type',
     id: `${prefix}.sub.${c.id}`,
-    prompt: `Crea una frase TUYA con «${c.en}». Cambia las otras palabras.`,
+    prompt: { es: `Crea una frase TUYA con «${c.en}». Cambia las otras palabras.`, en: `Make YOUR OWN sentence with «${c.en}». Change the other words.` },
     accept: [c.example.en],
     anyOf: chunkPhrases(c),
     skills: ['writing', 'grammar'],
@@ -105,7 +105,7 @@ export function errorCheckExercise(c: Chunk, prefix: string, flip: boolean): Cho
   return {
     kind: 'choice',
     id: `${prefix}.check.${c.id}`,
-    prompt: '¿Cuál suena natural en inglés?',
+    prompt: { es: '¿Cuál suena natural en inglés?', en: 'Which one sounds natural in English?' },
     options: flip ? [e.wrong, e.right] : [e.right, e.wrong],
     answer: flip ? 1 : 0,
     explain: e.why,

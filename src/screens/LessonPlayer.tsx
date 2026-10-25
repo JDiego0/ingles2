@@ -86,10 +86,10 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
         </span>
       </header>
       <p className="player__phase">
-        {PHASES[current.phase].title} <span className="muted">· {posInPhase}/{phaseSteps.length}</span>
+        {mode === 'es' ? PHASES[current.phase].title : PHASES[current.phase].titleEn} <span className="muted">· {posInPhase}/{phaseSteps.length}</span>
       </p>
 
-      {firstOfPhase && current.kind !== 'summary' && <PhaseIntro {...PHASES[current.phase]} />}
+      {firstOfPhase && current.kind !== 'summary' && <PhaseIntro {...PHASES[current.phase]} mode={mode} />}
 
       <div key={session.step}>{renderStep(current)}</div>
     </div>

@@ -300,14 +300,16 @@ export function VictoryStep({ lesson, onDone }: { lesson: Lesson; onDone: (grade
   );
 }
 
-export function PhaseIntro({ title, titleEn, minutes, intro }: { title: string; titleEn: string; minutes: number; intro: string }) {
+export function PhaseIntro({ title, titleEn, minutes, intro, introEn, mode }: { title: string; titleEn: string; minutes: number; intro: string; introEn: string; mode: InstrMode }) {
+  const en = mode !== 'es';
   return (
     <div className="phase-intro">
       <p className="eyebrow">
-        {titleEn} · ~{minutes} min
+        {en ? title : titleEn} · ~{minutes} min
       </p>
-      <h2>{title}</h2>
-      <p className="muted">{intro}</p>
+      <h2 lang={en ? 'en' : 'es'}>{en ? titleEn : title}</h2>
+      <p className="muted" lang={en ? 'en' : 'es'}>{en ? introEn : intro}</p>
+      {mode === 'bi' && <p className="small muted">{intro}</p>}
     </div>
   );
 }

@@ -21,15 +21,16 @@ export interface PhaseInfo {
   titleEn: string;
   minutes: number;
   intro: string;
+  introEn: string;
 }
 
 export const PHASES: PhaseInfo[] = [
-  { title: 'Calentamiento', titleEn: 'Warm-up', minutes: 4, intro: 'Recupera de memoria lo que ya estudiaste. Intenta responder antes de pedir pistas.' },
-  { title: 'Comprensión', titleEn: 'Context', minutes: 5, intro: 'Escucha una situación real. Primero entiende la idea general; después revisa los detalles.' },
-  { title: 'Expresiones nuevas', titleEn: 'New chunks', minutes: 5, intro: 'Aprende pocas expresiones, bien: significado, sonido, ejemplo, cómo reutilizarlas y el error típico.' },
-  { title: 'Recuperación activa', titleEn: 'Active recall', minutes: 5, intro: 'Ahora sin ver las respuestas. Equivocarte aquí es parte del aprendizaje.' },
-  { title: 'Producción libre', titleEn: 'Free production', minutes: 6, intro: 'Habla o escribe con tus propias palabras. No hay respuesta modelo visible.' },
-  { title: 'Evaluación y cierre', titleEn: 'Check & wrap-up', minutes: 5, intro: 'Preguntas nuevas para comprobar lo aprendido, y tu pequeña victoria del día.' },
+  { title: 'Calentamiento', titleEn: 'Warm-up', minutes: 4, intro: 'Recupera de memoria lo que ya estudiaste. Intenta responder antes de pedir pistas.', introEn: 'Recall what you studied before. Try to answer before asking for hints.' },
+  { title: 'Comprensión', titleEn: 'Context', minutes: 5, intro: 'Escucha una situación real. Primero entiende la idea general; después revisa los detalles.', introEn: 'Listen to a real situation. First get the general idea; then check the details.' },
+  { title: 'Expresiones nuevas', titleEn: 'New chunks', minutes: 5, intro: 'Aprende pocas expresiones, bien: significado, sonido, ejemplo, cómo reutilizarlas y el error típico.', introEn: 'Learn a few expressions well: meaning, sound, example, how to reuse them and the typical mistake.' },
+  { title: 'Recuperación activa', titleEn: 'Active recall', minutes: 5, intro: 'Ahora sin ver las respuestas. Equivocarte aquí es parte del aprendizaje.', introEn: 'Now without seeing the answers. Making mistakes here is part of learning.' },
+  { title: 'Producción libre', titleEn: 'Free production', minutes: 6, intro: 'Habla o escribe con tus propias palabras. No hay respuesta modelo visible.', introEn: 'Speak or write in your own words. There is no visible model answer.' },
+  { title: 'Evaluación y cierre', titleEn: 'Check & wrap-up', minutes: 5, intro: 'Preguntas nuevas para comprobar lo aprendido, y tu pequeña victoria del día.', introEn: 'New questions to check what you learned, and your small victory of the day.' },
 ];
 
 /** Contextos de uso (para saber si un chunk se usó en situaciones distintas). */
@@ -50,7 +51,9 @@ export function pickWarmup(lesson: Lesson, chunks: Record<string, ChunkProgress>
     .filter((p) => p.nextReview <= now && !exclude.has(p.id) && chunkById.has(p.id))
     .sort((a, b) => a.nextReview - b.nextReview)
     .map((p) => p.id);
-  const previous = chunksBefore(lesson.id)
+  // Entre los no vencidos, los más débiles primero y, a igualdad, los más recientes.
+  const previous = [...chunksBefore(lesson.id)]
+    .reverse()
     .filter((id) => !exclude.has(id) && !due.includes(id) && chunkById.has(id))
     .sort((a, b) => masteryScore(chunks[a]) - masteryScore(chunks[b]));
   return [...due, ...previous].slice(0, 4);
