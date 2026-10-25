@@ -4,5 +4,8 @@
  */
 import type { LibraryBatch } from './build';
 import { STAGE_A_LIBRARY } from './stageA';
+import { STAGE_B_LIBRARY } from './stageB';
+import { STAGE_C_LIBRARY } from './stageC';
+import { STAGE_D_LIBRARY } from './stageD';
 
-export const LIBRARY: LibraryBatch[] = [...STAGE_A_LIBRARY];
+export const LIBRARY: LibraryBatch[] = [...STAGE_A_LIBRARY, ...STAGE_B_LIBRARY, ...STAGE_C_LIBRARY, ...STAGE_D_LIBRARY];
