@@ -9,19 +9,7 @@ import { Icon } from '../components/Icon';
 import { Card, PageHeader, Verdict, pct } from '../components/ui';
 import type { Skill } from '../types/content';
 import type { DiagnosticRecord } from '../types/progress';
-
-type Estimate = DiagnosticRecord['estimate'];
-
-/** Estimación por bandas: hay que superar la banda inferior para subir. */
-export function estimateFromBands(b: Record<'A1' | 'A2' | 'B1' | 'B2', number>): Estimate {
-  if (b.A1 < 0.4) return 'A0';
-  if (b.A1 < 0.75) return 'A1';
-  if (b.A2 < 0.5) return 'A1+';
-  if (b.A2 < 0.75) return 'A2';
-  if (b.B1 < 0.5) return 'A2+';
-  if (b.B2 < 0.6) return 'B1';
-  return 'B2';
-}
+import { estimateFromBands } from '../engine/diagnostic';
 
 export function DiagnosticScreen() {
   const { state, act } = useProgress();

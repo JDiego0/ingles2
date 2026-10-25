@@ -220,3 +220,13 @@ describe('diagnóstico, conversación y pronunciación', () => {
     }
   });
 });
+
+describe('resumen', () => {
+  it('muestra el tamaño del contenido', () => {
+    const byLevel: Record<string, number> = {};
+    for (const c of CHUNKS) byLevel[c.level] = (byLevel[c.level] ?? 0) + 1;
+    const units = MODULES.reduce((a, m) => a + m.units.length, 0);
+    console.log(`Contenido: ${MODULES.length} módulos, ${units} unidades, ${LESSONS.length} lecciones, ${CHUNKS.length} chunks ${JSON.stringify(byLevel)}, ${allExercises().length} ejercicios escritos, ${CONVERSATIONS.length} conversaciones`);
+    expect(LESSONS.length).toBeGreaterThan(0);
+  });
+});

@@ -57,11 +57,11 @@ export const DIAGNOSTIC: DiagItem[] = [
 
 /** Recomendación de inicio según la estimación. */
 export const START_BY_ESTIMATE: Record<string, { module: string; text: string }> = {
-  A0: { module: 'a1', text: 'Empieza desde el principio: construiremos una base sólida y rápida.' },
+  A0: { module: 'a1', text: 'Empieza desde el principio: construiremos una base sólida, paso a paso.' },
   A1: { module: 'a1', text: 'Empieza por el módulo 1: lo recorrerás rápido y consolidarás lo que ya sabes.' },
-  'A1+': { module: 'a2', text: 'Puedes empezar en el módulo 2. El módulo 1 queda abierto por si quieres repasarlo.' },
-  A2: { module: 'a3', text: 'Puedes empezar en el módulo 3. Los anteriores quedan abiertos para repasar.' },
-  'A2+': { module: 'a5', text: 'Tienes buena base. Empieza al final de la etapa A para asegurar la producción oral.' },
-  B1: { module: 'a5', text: 'Tienes buena base. Empieza al final de la etapa A y avanza rápido hacia A2 y B1.' },
-  B2: { module: 'a5', text: 'Tienes buena base. Empieza al final de la etapa A y avanza rápido.' },
+  'A1+': { module: 'a3', text: 'Puedes empezar en el módulo 3. Los módulos anteriores quedan abiertos para repasar cuando quieras.' },
+  A2: { module: 'b1', text: 'Tienes una base A1 sólida. Empieza la etapa B (A2); la etapa A queda abierta para repasar.' },
+  'A2+': { module: 'b3', text: 'Puedes empezar a mitad de la etapa B. Revisa los módulos anteriores si alguna evaluación se te dificulta.' },
+  B1: { module: 'c1', text: 'Empieza la etapa C (B1). Recuerda: una prueba corta no certifica tu nivel; las evaluaciones de módulo lo confirmarán.' },
+  B2: { module: 'c3', text: 'Empieza al final de la etapa C. Las evaluaciones de módulo confirmarán si puedes pasar rápido a la etapa D.' },
 };

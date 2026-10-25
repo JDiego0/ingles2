@@ -3,8 +3,9 @@
  * el interlocutor elige su siguiente frase según palabras clave de tu respuesta.
  */
 import type { Conversation } from '../types/content';
+import { MORE_CONVERSATIONS } from './conversations-more';
 
-export const CONVERSATIONS: Conversation[] = [
+const BASE: Conversation[] = [
   {
     id: 'meet-someone',
     title: 'Conocer a alguien',
@@ -65,3 +66,5 @@ export const CONVERSATIONS: Conversation[] = [
     ],
   },
 ];
+
+export const CONVERSATIONS: Conversation[] = [...BASE, ...MORE_CONVERSATIONS];
