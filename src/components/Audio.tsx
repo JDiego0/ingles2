@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
-import { speak, stopSpeaking, ttsAvailable } from '../speech/tts';
+import { speakResult, stopSpeaking, ttsAvailable } from '../speech/tts';
 import { useProgress } from '../state/ProgressContext';
 
 /** Hook que reproduce texto con la voz y velocidad configuradas. */
@@ -8,16 +8,42 @@ export function useSpeaker() {
   const { state } = useProgress();
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  useEffect(() => () => stopSpeaking(), []);
+  const active = useRef(false);
+  // Al salir de la pantalla solo se corta el audio si lo lanzó este componente.
+  useEffect(() => () => {
+    if (active.current) stopSpeaking();
+  }, []);
+  const say = async (text: string, slow = false) => {
+    const rate = slow ? Math.max(0.5, state.settings.rate - 0.3) : state.settings.rate;
+    active.current = true;
+    const r = await speakResult(text, { rate, voiceURI: state.settings.voiceURI });
+    active.current = false;
+    return r;
+  };
   const play = async (text: string, slow = false) => {
     setSpeaking(text + (slow ? ':slow' : ''));
-    const rate = slow ? Math.max(0.5, state.settings.rate - 0.3) : state.settings.rate;
-    const ok = await speak(text, { rate, voiceURI: state.settings.voiceURI });
-    setFailed(!ok);
+    const r = await say(text, slow);
+    setFailed(r === 'failed');
     setSpeaking(null);
-    return ok;
+    return r !== 'failed';
   };
-  return { play, speaking, failed, available: ttsAvailable() };
+  /** Reproduce varias frases seguidas; se detiene si falla o si empieza otro audio. */
+  const playAll = async (texts: string[]) => {
+    for (const t of texts) {
+      setSpeaking(t);
+      // eslint-disable-next-line no-await-in-loop
+      const r = await say(t);
+      if (r !== 'ok') {
+        setSpeaking(null);
+        setFailed(r === 'failed');
+        return r;
+      }
+    }
+    setSpeaking(null);
+    setFailed(false);
+    return 'ok' as const;
+  };
+  return { play, playAll, speaking, failed, available: ttsAvailable() };
 }
 
 export function AudioFailed() {

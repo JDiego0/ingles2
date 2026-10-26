@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { recognitionAvailable, startRecognition, type RecognitionHandle } from '../speech/recognition';
+import { stopSpeaking } from '../speech/tts';
 import { recorderAvailable, startRecording, type Recording } from '../speech/recorder';
 import { useProgress } from '../state/ProgressContext';
 
@@ -38,6 +39,8 @@ export function VoiceInput({
   if (!recognitionAvailable()) return big ? null : <SelfRecorder compact={compact} />;
 
   const start = () => {
+    // Si la app sigue hablando, el micrófono transcribiría su propia voz.
+    stopSpeaking();
     setError('');
     setInterim('');
     setListening(true);

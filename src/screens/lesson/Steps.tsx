@@ -16,7 +16,7 @@ import { ttsAvailable } from '../../speech/tts';
 
 /** Fase 2: primero escuchar sin texto y responder la idea general; después, transcripción y traducción. */
 export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson; mode: InstrMode; onRecord: (exId: string, r: ExerciseResult) => void; onDone: () => void }) {
-  const { play, speaking } = useSpeaker();
+  const { play, playAll: playLines, speaking } = useSpeaker();
   const tts = ttsAvailable();
   const [stage, setStage] = useState<'listen' | 'gist' | 'transcript'>(tts ? 'listen' : 'gist');
   const [gi, setGi] = useState(0);
@@ -30,19 +30,13 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
 
   const playAll = async () => {
     setPlayingAll(true);
-    for (const l of ctx.lines) {
-      // eslint-disable-next-line no-await-in-loop
-      const ok = await play(l.en);
-      if (!ok) {
-        // Sin audio real: pasar a leer la conversación.
-        setAudioFailed(true);
-        setPlayingAll(false);
-        setStage('gist');
-        return;
-      }
-    }
+    const r = await playLines(ctx.lines.map((l) => l.en));
     setPlayingAll(false);
-    setListened(true);
+    if (r === 'failed') {
+      // Sin audio real: pasar a leer la conversación.
+      setAudioFailed(true);
+      setStage('gist');
+    } else if (r === 'ok') setListened(true);
   };
 
   return (
