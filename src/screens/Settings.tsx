@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProgress } from '../state/ProgressContext';
 import { exportBackup, parseBackup } from '../storage/store';
-import { englishVoices, loadVoices, speak, ttsAvailable } from '../speech/tts';
+import { audioLog, englishVoices, loadVoices, speak, ttsAvailable } from '../speech/tts';
 import { recognitionAvailable } from '../speech/recognition';
 import { recorderAvailable } from '../speech/recorder';
 import { useOnline } from '../pwa';
@@ -25,6 +25,7 @@ export function SettingsScreen() {
   const { state, act } = useProgress();
   const s = state.settings;
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [log, setLog] = useState<string[]>([]);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pendingImport, setPendingImport] = useState<ReturnType<typeof parseBackup> | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -133,9 +134,26 @@ export function SettingsScreen() {
             <label className="toggle">
               <input type="checkbox" checked={s.autoplay} onChange={(e) => set({ autoplay: e.target.checked })} /> Reproducir automáticamente al interlocutor en conversaciones
             </label>
-            <button className="btn btn--soft" onClick={() => speak("Hi! I'm your English practice voice. How does this sound?", { rate: s.rate, voiceURI: s.voiceURI })}>
+            <button
+              className="btn btn--soft"
+              onClick={async () => {
+                await speak("Hi! I'm your English practice voice. How does this sound?", { rate: s.rate, voiceURI: s.voiceURI });
+                setLog(audioLog());
+              }}
+            >
               <Icon name="play" size={16} /> Probar voz
             </button>
+            <details className="details" onToggle={() => setLog(audioLog())}>
+              <summary>Diagnóstico de audio</summary>
+              <p className="muted small">
+                Si algún audio se escucha doble, ábrelo justo después y haz una captura: muestra cuántas veces se pidió hablar y con qué voz.
+                Si se pidió una sola vez y aun así suena doble, prueba otra voz en la lista de arriba.
+              </p>
+              <pre className="audio-log">{log.length ? log.join('\n') : 'Todavía no se ha reproducido ningún audio.'}</pre>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLog(audioLog())}>
+                <Icon name="refresh" size={14} /> Actualizar
+              </button>
+            </details>
           </>
         ) : (
           <Verdict kind="info">Este navegador no ofrece síntesis de voz. Usa Chrome en Android para tener audio.</Verdict>

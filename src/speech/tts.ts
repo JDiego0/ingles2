@@ -53,19 +53,47 @@ export type SpeakResult = 'ok' | 'failed' | 'interrupted';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Registro de los últimos eventos de audio (se muestra en Ajustes → Voz para diagnosticar). */
+const events: string[] = [];
+let t0 = 0;
+function logEvent(msg: string) {
+  const now = Date.now();
+  if (!t0 || now - t0 > 60_000) t0 = now;
+  events.push(`+${((now - t0) / 1000).toFixed(2)}s ${msg}`);
+  if (events.length > 30) events.shift();
+}
+export const audioLog = () => [...events];
+
 /** Cada reproducción tiene un número: si empieza otra, la anterior se da por interrumpida. */
 let generation = 0;
-let current: { key: string; at: number; promise: Promise<SpeakResult> } | null = null;
+
+interface Active {
+  key: string;
+  at: number;
+  promise: Promise<SpeakResult>;
+  /** Referencia fuerte: en Android, si la frase se libera de memoria, `onend` no llega nunca. */
+  u: SpeechSynthesisUtterance | null;
+  done: boolean;
+}
+let active: Active | null = null;
+
+/** Espera a que el sintetizador quede en silencio (máx. `max` ms). */
+async function waitSilence(synth: SpeechSynthesis, max: number) {
+  const until = Date.now() + max;
+  while ((synth.speaking || synth.pending) && Date.now() < until) await sleep(50);
+}
 
 /**
  * Reproduce un texto y dice cómo terminó.
  *
  * Evita el audio «doble» de Chrome para Android:
- * - un doble toque (o el clic fantasma de algunos móviles) sobre la misma frase no la lanza dos veces;
- * - `cancel()` es asíncrono en Android: si se habla justo después, la frase anterior puede seguir
- *   sonando encima o repetirse, así que se espera un momento tras cancelar;
- * - el final se detecta también cuando el sintetizador queda en silencio (algunos Android no
- *   disparan `onend`), en vez de con un temporizador que podía lanzar la siguiente frase encima.
+ * - solo suena una frase a la vez: antes de empezar otra se cancela la anterior y se espera
+ *   a que termine de verdad (en Android `cancel()` es asíncrono y, si se habla enseguida,
+ *   la frase anterior puede seguir sonando encima o repetirse);
+ * - un doble toque (o el clic fantasma de algunos móviles) no la lanza dos veces, y tocar
+ *   de nuevo la frase que está sonando la detiene;
+ * - el final se toma de `onend`; el estado del sintetizador solo se usa como respaldo cuando
+ *   ya pasó la duración esperada (en algunos Android `speaking` es poco fiable).
  */
 export function speakResult(text: string, opts: SpeakOptions = {}): Promise<SpeakResult> {
   if (!ttsAvailable()) return Promise.resolve('failed');
@@ -73,41 +101,63 @@ export function speakResult(text: string, opts: SpeakOptions = {}): Promise<Spea
   const rate = opts.rate ?? 0.9;
   const key = `${text}|${rate}`;
   const now = Date.now();
-  if (current && current.key === key && now - current.at < 800) return current.promise;
+  if (active && !active.done && active.key === key) {
+    if (now - active.at < 1000) {
+      logEvent('toque repetido ignorado');
+      return active.promise;
+    }
+    logEvent('misma frase tocada otra vez: detener');
+    stopSpeaking();
+    return Promise.resolve('interrupted');
+  }
   const my = ++generation;
-  const promise = (async (): Promise<SpeakResult> => {
+  const prev = active;
+  const entry: Active = { key, at: now, promise: Promise.resolve('interrupted' as SpeakResult), u: null, done: false };
+  entry.promise = (async (): Promise<SpeakResult> => {
     const voices = await loadVoices();
     if (my !== generation) return 'interrupted';
-    if (synth.speaking || synth.pending) {
+    if ((prev && !prev.done) || synth.speaking || synth.pending) {
+      logEvent('cancelar audio anterior');
       synth.cancel();
-      await sleep(150);
+      if (prev && !prev.done) await Promise.race([prev.promise, sleep(500)]);
+      await waitSilence(synth, 800);
+      await sleep(120);
       if (my !== generation) return 'interrupted';
     }
     return new Promise<SpeakResult>((resolve) => {
       const u = new SpeechSynthesisUtterance(text);
+      entry.u = u;
       const voice = pickVoice(voices, opts.voiceURI ?? null);
       if (voice) u.voice = voice;
       u.lang = voice?.lang ?? 'en-US';
       u.rate = rate;
       let finished = false;
       let started = false;
+      let silentPolls = 0;
+      const startedAt = Date.now();
+      const expected = 1500 + (text.length * 75) / (rate || 1);
       const timers: ReturnType<typeof setTimeout>[] = [];
       const end = (r: SpeakResult) => {
         if (finished) return;
         finished = true;
+        entry.done = true;
         clearInterval(poll);
         timers.forEach(clearTimeout);
+        logEvent(`fin (${r}): «${text.slice(0, 30)}»`);
         resolve(r);
       };
       u.onstart = () => {
         started = true;
+        logEvent('empieza a sonar');
       };
       u.onend = () => end('ok');
       u.onerror = (e) => end(e.error === 'interrupted' || e.error === 'canceled' ? 'interrupted' : 'failed');
       const poll = setInterval(() => {
         if (my !== generation) return end('interrupted');
-        if (synth.speaking) started = true;
-        else if (started && !synth.pending) end('ok');
+        if (synth.speaking) {
+          started = true;
+          silentPolls = 0;
+        } else if (started && Date.now() - startedAt > expected && ++silentPolls >= 2) end('ok');
       }, 300);
       // Si el audio no empieza (sin voces instaladas, bloqueo del navegador), se informa del fallo.
       timers.push(
@@ -120,11 +170,15 @@ export function speakResult(text: string, opts: SpeakOptions = {}): Promise<Spea
       );
       // Límite absoluto por si el navegador nunca informa del final.
       timers.push(setTimeout(() => end('ok'), 15000 + (text.length * 150) / (rate || 1)));
+      logEvent(`hablar: «${text.slice(0, 30)}» (voz: ${voice?.name ?? 'predeterminada'})`);
       synth.speak(u);
     });
   })();
-  current = { key, at: now, promise };
-  return promise;
+  entry.promise.finally(() => {
+    entry.done = true;
+  });
+  active = entry;
+  return entry.promise;
 }
 
 /** Reproduce un texto. Resuelve true al terminar (o si otra frase lo interrumpió), false si no fue posible. */
@@ -134,6 +188,6 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<bool
 
 export function stopSpeaking() {
   generation++;
-  current = null;
+  active = null;
   if (ttsAvailable()) window.speechSynthesis.cancel();
 }

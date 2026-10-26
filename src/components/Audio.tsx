@@ -43,7 +43,11 @@ export function useSpeaker() {
     setFailed(false);
     return 'ok' as const;
   };
-  return { play, playAll, speaking, failed, available: ttsAvailable() };
+  const stop = () => {
+    stopSpeaking();
+    setSpeaking(null);
+  };
+  return { play, playAll, stop, speaking, failed, available: ttsAvailable() };
 }
 
 export function AudioFailed() {
@@ -57,7 +61,7 @@ export function AudioFailed() {
 
 /** Botón para escuchar una frase (normal y lento). Si no hay voz, lo explica. */
 export function Listen({ text, label = 'Escuchar', slow = true, compact }: { text: string; label?: string; slow?: boolean; compact?: boolean }) {
-  const { play, speaking, available, failed } = useSpeaker();
+  const { play, stop, speaking, available, failed } = useSpeaker();
   if (!available) {
     return compact ? null : <span className="muted small">Audio no disponible en este navegador.</span>;
   }
@@ -67,12 +71,12 @@ export function Listen({ text, label = 'Escuchar', slow = true, compact }: { tex
       <button
         type="button"
         className={`btn btn--soft ${compact ? 'btn--icon' : 'btn--sm'}`}
-        onClick={() => play(text)}
+        onClick={() => (speaking === text ? stop() : play(text))}
         aria-label={`${label}: ${text}`}
         aria-pressed={speaking === text}
       >
-        <Icon name="play" size={16} />
-        {!compact && <span>{label}</span>}
+        <Icon name={speaking === text ? 'stop' : 'play'} size={16} />
+        {!compact && <span>{speaking === text ? 'Detener' : label}</span>}
       </button>
       {slow && (
         <button type="button" className="btn btn--ghost btn--icon" onClick={() => play(text, true)} aria-label={`Escuchar despacio: ${text}`} title="Despacio">

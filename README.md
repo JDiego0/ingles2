@@ -63,7 +63,7 @@ En modo «Progresivo» (por defecto): etapa A en español, etapa B bilingüe, et
 - Web Speech API: síntesis de voz (en-US) y reconocimiento cuando el navegador lo ofrece; si no, grabación local con MediaRecorder o respuesta escrita.
 - PWA: `manifest.webmanifest`, iconos y service worker generado en cada build con la lista exacta de archivos y una versión por contenido (las cachés antiguas se borran al activar la nueva versión; la app avisa «Hay una versión nueva» en lugar de recargar a mitad de una lección).
 - Progreso en `localStorage` con validación, migración, exportación/importación JSON y pantalla de recuperación si los datos se dañan. Varias pestañas abiertas no se pisan entre sí.
-- Vitest: 77 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
+- Vitest: 79 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
 
 ## Estructura
 
