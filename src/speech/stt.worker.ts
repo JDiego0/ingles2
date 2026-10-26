@@ -106,8 +106,8 @@ async function run(p: AutomaticSpeechRecognitionPipeline, audio: Float32Array, p
   const seconds = audio.length / 16000;
   const { input_features } = (await p.processor(audio)) as { input_features: Tensor };
   const { prev, sot, noTs } = specialIds(p);
-  // <|startofprev|> vocabulario <|startoftranscript|> <|notimestamps|>; el prompt se limita a ~120 tokens.
-  const promptIds = prompt ? p.tokenizer.encode(` ${prompt.trim()}`, { add_special_tokens: false }).slice(-120) : [];
+  // <|startofprev|> nombres y frases del tema <|startoftranscript|> <|notimestamps|>; Whisper admite hasta ~220 tokens de prompt.
+  const promptIds = prompt ? p.tokenizer.encode(` ${prompt.trim()}`, { add_special_tokens: false }).slice(-200) : [];
   const init = promptIds.length ? [prev, ...promptIds, sot, noTs] : [sot, noTs];
   const out = (await p.model.generate({
     inputs: input_features,
@@ -132,9 +132,9 @@ self.onmessage = (e: MessageEvent<WorkerIn>) => {
     try {
       const { p } = await load();
       let text = await run(p, m.audio, m.prompt);
-      // Si con el vocabulario no sale nada o solo repite un trozo de la lista (pasa con audio poco claro), se repite sin él.
-      const echo = text.split(/\s+/).length >= 3 && m.prompt?.toLowerCase().includes(text.toLowerCase().replace(/[.]+$/, ''));
-      if (m.prompt && (!text || echo)) text = await run(p, m.audio);
+      // Si con las frases del tema no sale nada, se repite sin ellas. (No se compara con el prompt:
+      // decir justo la frase esperada es lo normal; el silencio ya se descarta antes de llegar aquí.)
+      if (m.prompt && !text) text = await run(p, m.audio);
       post({ type: 'result', id: m.id, text });
     } catch (err) {
       post({ type: 'error', id: m.id, message: err instanceof Error ? err.message : String(err) });

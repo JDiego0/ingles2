@@ -4,7 +4,7 @@
  * y luego el modelo de stt.worker.ts transcribe la grabación. Funciona sin conexión una vez
  * descargado el modelo.
  */
-import { recognitionError, type RecognitionOutcome } from './recognition';
+import { collapseRepeats, recognitionError, type RecognitionOutcome } from './recognition';
 import type { SttBackend, WorkerIn, WorkerOut } from './stt.worker';
 
 const RATE = 16000;
@@ -139,6 +139,12 @@ function transcribe(audio: Float32Array, prompt?: string): Promise<string> {
   });
 }
 
+function peakOf(x: Float32Array): number {
+  let m = 0;
+  for (const v of x) m = Math.max(m, Math.abs(v));
+  return m || 1;
+}
+
 /** Volumen (RMS) de cada tramo de 20 ms. */
 function frameLevels(x: Float32Array, frame = RATE / 50): number[] {
   const out: number[] = [];
@@ -152,7 +158,7 @@ function frameLevels(x: Float32Array, frame = RATE / 50): number[] {
 }
 
 /**
- * Quita el silencio del principio y del final y parte las grabaciones largas en trozos
+ * Quita el silencio del principio y del final, iguala el volumen y parte las grabaciones largas en trozos
  * de hasta 20 s, cortando en la pausa más clara. null si no se oyó voz.
  */
 export function prepareAudio(x: Float32Array): Float32Array[] | null {
@@ -169,6 +175,9 @@ export function prepareAudio(x: Float32Array): Float32Array[] | null {
   const b = Math.min(lv.length, last + pad + 1) * frame;
   const voiced = x.slice(a, Math.min(b, x.length));
   if (voiced.length < RATE * 0.25) return null;
+  // Mismo volumen siempre, hables cerca o lejos del teléfono.
+  const k = 0.9 / peakOf(voiced);
+  for (let i = 0; i < voiced.length; i++) voiced[i] *= k;
   const chunks: Float32Array[] = [];
   const max = 20 * RATE;
   let start = 0;
@@ -281,7 +290,8 @@ export function startLocalRecognition(
       lastSeconds: Math.round((performance.now() - started) / 100) / 10,
       lastAudioSeconds: Math.round(chunks.reduce((n, c) => n + c.length, 0) / RATE),
     });
-    const transcript = cleanTranscript(texts.join(' '));
+    // A veces el modelo entra en bucle («it is the same, it is the same…»): se quitan las repeticiones.
+    const transcript = collapseRepeats(cleanTranscript(texts.join(' ')));
     if (!transcript) throw new Error(recognitionError('no-speech'));
     return { transcript, alternatives: [transcript] };
   })();

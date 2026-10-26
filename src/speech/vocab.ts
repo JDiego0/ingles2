@@ -171,20 +171,49 @@ export function termsFrom(texts: string[], proper: string[] = [], common: string
   return [...out.values()];
 }
 
-/**
- * Lista de vocabulario para el modelo. Whisper la lee como texto anterior a la grabación,
- * así que escribe esas palabras tal cual si cree oírlas. Lo más importante va al final.
- */
-export function promptFor(terms: Term[], maxChars = 600): string {
-  // La lista general de lugares va primero (pesa menos); el tema y tus nombres, al final.
-  const ordered = [...terms.filter((t) => t.common), ...terms.filter((t) => !t.proper), ...terms.filter((t) => t.proper && !t.common)];
-  const picked: string[] = [];
+/** Una frase legible a partir de una respuesta aceptada: {a|b} → a, (opcional) → opcional, sin * ni #. */
+export function plainSentence(s: string): string {
+  return s
+    .replace(/\{([^|}]*)[^}]*\}/g, '$1')
+    .replace(/[()]/g, '')
+    .replace(/\s*[*#]\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Toma elementos desde el final mientras quepan en `budget` caracteres. */
+function fromEnd(items: string[], budget: number, sep: number): string[] {
+  const out: string[] = [];
   let len = 0;
-  for (let i = ordered.length - 1; i >= 0 && len + ordered[i].text.length + 2 <= maxChars; i--) {
-    picked.unshift(ordered[i].text);
-    len += ordered[i].text.length + 2;
+  for (let i = items.length - 1; i >= 0 && len + items[i].length + sep <= budget; i--) {
+    out.unshift(items[i]);
+    len += items[i].length + sep;
   }
-  return picked.length ? `${picked.join(', ')}.` : '';
+  return out;
+}
+
+/**
+ * Texto que Whisper lee como «lo dicho antes» de la grabación: primero los nombres propios
+ * (lugares, tu nombre, tus palabras) y después frases del tema, con las más importantes
+ * (la respuesta esperada) al final. Con frases completas entiende mucho mejor que con una lista
+ * de palabras sueltas, y si dices otra cosa no copia la frase esperada.
+ */
+export function promptFor(terms: Term[], sentences: string[] = [], maxChars = 900): string {
+  // La lista general de lugares va primero (pesa menos); los del tema y los tuyos, después.
+  const names = fromEnd([...terms.filter((t) => t.common), ...terms.filter((t) => t.proper && !t.common)].map((t) => t.text), 260, 2);
+  const seen = new Set<string>();
+  const clean: string[] = [];
+  // Si una frase se repite, cuenta su última aparición (la más importante).
+  for (let i = sentences.length - 1; i >= 0; i--) {
+    let s = plainSentence(sentences[i]);
+    if (!s || seen.has(s.toLowerCase())) continue;
+    seen.add(s.toLowerCase());
+    if (!/[.!?]$/.test(s)) s += '.';
+    clean.unshift(s);
+  }
+  const head = names.length ? `${names.join(', ')}.` : '';
+  const body = fromEnd(clean, maxChars - head.length, 1);
+  return [head, ...body].filter(Boolean).join(' ');
 }
 
 interface Token {

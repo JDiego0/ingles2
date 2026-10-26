@@ -20,11 +20,15 @@ describe('voz: ayudas del tema', () => {
     expect(t.join(' ')).not.toMatch(/[{}|()]/);
   });
 
-  it('el vocabulario para el modelo pone los nombres al final', () => {
-    const p = promptFor(terms);
-    expect(p.endsWith('.')).toBe(true);
-    expect(p.lastIndexOf('Diego')).toBeGreaterThan(p.indexOf('neighborhood'));
+  it('el texto para el modelo: nombres primero y frases del tema, la esperada al final', () => {
+    const p = promptFor(terms, ['I live in a quiet neighborhood.', "{I'm|I am} a software engineer (now)", 'I live in a quiet neighborhood.']);
     expect(p.indexOf('Medellín')).toBeGreaterThan(p.indexOf('Cartagena'));
+    expect(p.indexOf('Diego')).toBeLessThan(p.indexOf('I live'));
+    expect(p.endsWith('I live in a quiet neighborhood.')).toBe(true);
+    expect(p).toContain("I'm a software engineer now.");
+    expect(p.match(/quiet/g)).toHaveLength(1);
+    expect(p).not.toMatch(/[{}|()]/);
+    expect(promptFor(terms, Array(200).fill(0).map((_, i) => `Sentence number ${i}.`)).length).toBeLessThanOrEqual(900);
   });
 
   it('arrastra lo que suena parecido al nombre esperado', () => {

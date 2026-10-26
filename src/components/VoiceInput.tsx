@@ -50,7 +50,7 @@ export function VoiceInput({
   big?: boolean;
   /** Elige entre las interpretaciones del reconocedor (p. ej., la que coincide con la respuesta). */
   pick?: (alternatives: string[]) => string | undefined;
-  /** Frases esperadas o del tema (además de las de <SpeechHints>): ayudan a entender lo que dices. */
+  /** Frases esperadas o del tema (además de las de <SpeechHints>), la más importante primero: ayudan a entender lo que dices. */
   hints?: string[];
   label?: string;
 }) {
@@ -114,7 +114,7 @@ export function VoiceInput({
       // El aviso «te escucho» y el sonido llegan cuando el micrófono ya graba: así no se pierde la primera palabra.
       setPhase('starting');
       const h = startLocalRecognition({
-        prompt: promptFor(terms),
+        prompt: promptFor(terms, [...context, ...(hints ?? []).slice(0, 3).reverse()]),
         onLevel: setLevel,
         onPhase: (p) => {
           if (p === 'recording') soundMicOn();
