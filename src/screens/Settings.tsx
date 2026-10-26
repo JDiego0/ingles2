@@ -4,7 +4,7 @@ import { exportBackup, parseBackup } from '../storage/store';
 import { audioLog, englishVoices, loadVoices, speak, ttsAvailable } from '../speech/tts';
 import { recognitionAvailable } from '../speech/recognition';
 import { recorderAvailable } from '../speech/recorder';
-import { localSttSupported, loadStt, sttModelDownloaded } from '../speech/stt';
+import { localSttSupported, loadStt, setSttGpu, sttGpuEnabled, sttModelDownloaded } from '../speech/stt';
 import { soundError, soundSuccess } from '../speech/sounds';
 import { useSttStatus } from '../components/VoiceInput';
 import { useOnline } from '../pwa';
@@ -44,6 +44,7 @@ export function SettingsScreen() {
 
   const set = (patch: Partial<Settings>) => act.updateSettings(patch);
   const stt = useSttStatus();
+  const [gpu, setGpu] = useState(sttGpuEnabled);
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
@@ -198,6 +199,28 @@ export function SettingsScreen() {
                   </button>
                 )}
               </p>
+            )}
+            {s.stt === 'local' && localSttSupported() && (
+              <>
+                {stt.state === 'ready' && stt.backend && (
+                  <p className="muted small">
+                    Funciona con {stt.backend === 'webgpu' ? 'la tarjeta gráfica del teléfono (lo más rápido)' : `el procesador (${stt.threads ?? 1} ${stt.threads === 1 ? 'núcleo' : 'núcleos'})`}.
+                    {stt.lastSeconds !== undefined && ` La última respuesta (${stt.lastAudioSeconds ?? 0} s de voz) tardó ${stt.lastSeconds} s en transcribirse.`}
+                  </p>
+                )}
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={gpu}
+                    onChange={(e) => {
+                      setGpu(e.target.checked);
+                      setSttGpu(e.target.checked);
+                    }}
+                  />{' '}
+                  Usar la tarjeta gráfica si el teléfono lo permite
+                </label>
+                <p className="muted small">Es más rápido. Desactívalo solo si el micrófono empieza a entender cosas sin sentido.</p>
+              </>
             )}
             <label className="field">
               <span>Palabras que dices a menudo</span>

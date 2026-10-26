@@ -59,6 +59,17 @@ const AUDIO_CACHE = 'english-journey-audio';
 // El motor del reconocedor de voz tiene nombre con hash: se guarda aparte para no volver a bajarlo en cada versión.
 const STT_CACHE = 'english-journey-stt';
 
+// Aislamiento entre orígenes: GitHub Pages no permite poner cabeceras, así que las añade el service worker.
+// Con él, el reconocedor de voz puede usar varios núcleos del procesador (SharedArrayBuffer).
+// «credentialless» no bloquea recursos de otros sitios (el modelo se descarga de Hugging Face con CORS).
+function isolate(res) {
+  if (!res || res.status === 0 || res.type === 'opaque' || res.type === 'opaqueredirect') return res;
+  const headers = new Headers(res.headers);
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
 });
@@ -91,6 +102,7 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => caches.match('./index.html'))
+        .then(isolate)
     );
     return;
   }
@@ -101,7 +113,7 @@ self.addEventListener('fetch', (event) => {
       caches.open(persistent).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
         if (res.ok && res.status === 200) c.put(req, res.clone());
         return res;
-      })))
+      }))).then(isolate)
     );
     return;
   }
@@ -114,7 +126,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE).then((c) => c.put(req, copy));
       }
       return res;
-    }))
+    })).then(isolate)
   );
 });
 `;
@@ -123,6 +135,8 @@ self.addEventListener('fetch', (event) => {
 export default defineConfig({
   base: './',
   plugins: [react(), serviceWorker()],
+  // Las mismas cabeceras que pone el service worker en producción (varios núcleos para el reconocedor).
+  server: { headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'credentialless' } },
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1500,

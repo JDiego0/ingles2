@@ -5,6 +5,10 @@
  *
  * Whisper acepta un «texto anterior» (prompt): se le pasa el vocabulario del tema que se está
  * practicando y así escribe bien nombres como «Medellín» o palabras dichas con acento.
+ *
+ * Velocidad: la parte pesada (el codificador, que analiza siempre 30 s de audio) corre en la
+ * tarjeta gráfica si el navegador tiene WebGPU; si no, en el procesador con varios núcleos
+ * (el service worker activa el aislamiento que lo permite). El decodificador, ligero, va en el procesador.
  */
 import { env, pipeline, type AutomaticSpeechRecognitionPipeline, type Tensor } from '@huggingface/transformers';
 
@@ -12,38 +16,78 @@ export const STT_MODEL = 'onnx-community/whisper-base.en';
 
 env.allowLocalModels = false;
 
-export type WorkerIn = { type: 'load' } | { type: 'transcribe'; id: number; audio: Float32Array; prompt?: string };
+export type SttBackend = 'webgpu' | 'wasm';
+export type WorkerIn = { type: 'load'; gpu?: boolean } | { type: 'transcribe'; id: number; audio: Float32Array; prompt?: string };
 export type WorkerOut =
   | { type: 'progress'; loaded: number; total: number }
-  | { type: 'ready' }
+  | { type: 'ready'; backend: SttBackend; threads: number }
   | { type: 'error'; message: string; id?: number }
   | { type: 'result'; id: number; text: string };
 
 const post = (m: WorkerOut) => (self as unknown as Worker).postMessage(m);
 
-let asr: Promise<AutomaticSpeechRecognitionPipeline> | null = null;
+const threads = self.crossOriginIsolated ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)) : 1;
+const onnx = env.backends.onnx as { wasm?: { numThreads?: number } };
+if (onnx.wasm) onnx.wasm.numThreads = threads;
 
-function load() {
-  if (asr) return asr;
-  const files = new Map<string, { loaded: number; total: number }>();
-  asr = pipeline('automatic-speech-recognition', STT_MODEL, {
+async function gpuAvailable(): Promise<boolean> {
+  try {
+    const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+    return !!(gpu && (await gpu.requestAdapter()));
+  } catch {
+    return false;
+  }
+}
+
+interface Loaded {
+  p: AutomaticSpeechRecognitionPipeline;
+  backend: SttBackend;
+}
+
+let asr: Promise<Loaded> | null = null;
+
+function create(backend: SttBackend, onProgress: (p: { status: string; file?: string; loaded?: number; total?: number }) => void) {
+  return pipeline('automatic-speech-recognition', STT_MODEL, {
     // El codificador cuantizado pierde bastante precisión; el decodificador no.
     dtype: { encoder_model: 'fp32', decoder_model_merged: 'q8' },
-    device: 'wasm',
-    progress_callback: (p: { status: string; file?: string; loaded?: number; total?: number }) => {
-      if (p.status !== 'progress' || !p.file || !p.total) return;
-      files.set(p.file, { loaded: p.loaded ?? 0, total: p.total });
-      let loaded = 0;
-      let total = 0;
-      for (const f of files.values()) {
-        loaded += f.loaded;
-        total += f.total;
+    device: backend === 'webgpu' ? { encoder_model: 'webgpu', decoder_model_merged: 'wasm' } : 'wasm',
+    progress_callback: onProgress,
+  } as Record<string, unknown>) as Promise<AutomaticSpeechRecognitionPipeline>;
+}
+
+function load(useGpu = true) {
+  if (asr) return asr;
+  const files = new Map<string, { loaded: number; total: number }>();
+  const onProgress = (p: { status: string; file?: string; loaded?: number; total?: number }) => {
+    if (p.status !== 'progress' || !p.file || !p.total) return;
+    files.set(p.file, { loaded: p.loaded ?? 0, total: p.total });
+    let loaded = 0;
+    let total = 0;
+    for (const f of files.values()) {
+      loaded += f.loaded;
+      total += f.total;
+    }
+    post({ type: 'progress', loaded, total });
+  };
+  asr = (async (): Promise<Loaded> => {
+    if (useGpu && (await gpuAvailable())) {
+      let p: AutomaticSpeechRecognitionPipeline | null = null;
+      try {
+        p = await create('webgpu', onProgress);
+        // Precalentar: la primera pasada compila los programas de la tarjeta gráfica.
+        await run(p, new Float32Array(16000));
+        return { p, backend: 'webgpu' };
+      } catch {
+        // WebGPU incompleto en este teléfono: se usa el procesador.
+        await p?.dispose().catch(() => undefined);
       }
-      post({ type: 'progress', loaded, total });
-    },
-  }) as Promise<AutomaticSpeechRecognitionPipeline>;
+    }
+    const p = await create('wasm', onProgress);
+    await run(p, new Float32Array(16000));
+    return { p, backend: 'wasm' };
+  })();
   asr.then(
-    () => post({ type: 'ready' }),
+    (l) => post({ type: 'ready', backend: l.backend, threads }),
     (e: unknown) => {
       asr = null;
       post({ type: 'error', message: e instanceof Error ? e.message : String(e) });
@@ -75,20 +119,25 @@ async function run(p: AutomaticSpeechRecognitionPipeline, audio: Float32Array, p
   return ids.length ? p.tokenizer.decode(ids, { skip_special_tokens: true }).trim() : '';
 }
 
-self.onmessage = async (e: MessageEvent<WorkerIn>) => {
+/** Las transcripciones van de una en una: el modelo no admite dos pasadas a la vez. */
+let queue: Promise<unknown> = Promise.resolve();
+
+self.onmessage = (e: MessageEvent<WorkerIn>) => {
   const m = e.data;
   if (m.type === 'load') {
-    load().catch(() => undefined);
+    load(m.gpu !== false).catch(() => undefined);
     return;
   }
-  try {
-    const p = await load();
-    let text = await run(p, m.audio, m.prompt);
-    // Si con el vocabulario no sale nada o solo repite un trozo de la lista (pasa con audio poco claro), se repite sin él.
-    const echo = text.split(/\s+/).length >= 3 && m.prompt?.toLowerCase().includes(text.toLowerCase().replace(/[.]+$/, ''));
-    if (m.prompt && (!text || echo)) text = await run(p, m.audio);
-    post({ type: 'result', id: m.id, text });
-  } catch (err) {
-    post({ type: 'error', id: m.id, message: err instanceof Error ? err.message : String(err) });
-  }
+  queue = queue.then(async () => {
+    try {
+      const { p } = await load();
+      let text = await run(p, m.audio, m.prompt);
+      // Si con el vocabulario no sale nada o solo repite un trozo de la lista (pasa con audio poco claro), se repite sin él.
+      const echo = text.split(/\s+/).length >= 3 && m.prompt?.toLowerCase().includes(text.toLowerCase().replace(/[.]+$/, ''));
+      if (m.prompt && (!text || echo)) text = await run(p, m.audio);
+      post({ type: 'result', id: m.id, text });
+    } catch (err) {
+      post({ type: 'error', id: m.id, message: err instanceof Error ? err.message : String(err) });
+    }
+  });
 };

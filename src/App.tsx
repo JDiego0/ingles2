@@ -18,6 +18,8 @@ import { AssessmentScreen } from './screens/Assessment';
 import { SettingsScreen } from './screens/Settings';
 import { PracticeHub } from './screens/Practice';
 import { Welcome } from './screens/Welcome';
+import { sttEngine } from './components/VoiceInput';
+import { loadStt, sttModelDownloaded } from './speech/stt';
 
 /** Pantallas de estudio activo: cuentan tiempo de práctica y ocultan la navegación inferior. */
 const FOCUS = new Set(['leccion', 'evaluacion', 'diagnostico']);
@@ -54,6 +56,18 @@ function useStudyTimer(active: boolean) {
   }, [active, act]);
 }
 
+/**
+ * Si el reconocedor ya está descargado, se carga y precalienta poco después de abrir la app:
+ * así la primera respuesta hablada no tiene que esperar a que se prepare el modelo.
+ */
+function useSttPreload(local: boolean) {
+  useEffect(() => {
+    if (!local || !sttModelDownloaded()) return;
+    const id = setTimeout(loadStt, 2500);
+    return () => clearTimeout(id);
+  }, [local]);
+}
+
 const NAV: { href: string; label: string; icon: IconName; match: string[] }[] = [
   { href: '#/', label: 'Inicio', icon: 'home', match: [''] },
   { href: '#/ruta', label: 'Ruta', icon: 'map', match: ['ruta'] },
@@ -70,6 +84,7 @@ export function App() {
   const [section = '', a, b] = route.parts;
   useTheme(state.settings.theme);
   useStudyTimer(STUDY.has(section));
+  useSttPreload(sttEngine(state.settings) === 'local');
   const due = dueChunks(state.chunks, Date.now()).length;
   const focus = FOCUS.has(section) || (section === 'conversar' && !!a);
 

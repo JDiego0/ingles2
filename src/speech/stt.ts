@@ -5,11 +5,12 @@
  * descargado el modelo.
  */
 import { recognitionError, type RecognitionOutcome } from './recognition';
-import type { WorkerIn, WorkerOut } from './stt.worker';
+import type { SttBackend, WorkerIn, WorkerOut } from './stt.worker';
 
 const RATE = 16000;
 // v2: Whisper (antes Moonshine). Con otra clave, se vuelve a pedir permiso para la descarga nueva.
 const DOWNLOADED_KEY = 'english-journey:stt-model-v2';
+const GPU_KEY = 'english-journey:stt-gpu';
 
 export function localSttSupported(): boolean {
   return (
@@ -38,6 +39,12 @@ export interface SttStatus {
   /** MB totales del modelo, cuando se conocen. */
   totalMb: number;
   error?: string;
+  /** Dónde corre: tarjeta gráfica (WebGPU) o procesador, y con cuántos núcleos. */
+  backend?: SttBackend;
+  threads?: number;
+  /** Segundos que tardó la última transcripción y duración de lo grabado. */
+  lastSeconds?: number;
+  lastAudioSeconds?: number;
 }
 
 let status: SttStatus = { state: 'idle', progress: 0, totalMb: 0 };
@@ -56,6 +63,32 @@ let worker: Worker | null = null;
 let nextId = 1;
 const pending = new Map<number, { resolve: (t: string) => void; reject: (e: Error) => void }>();
 
+/** false si se desactivó la tarjeta gráfica en Ajustes (por si en algún teléfono funciona mal). */
+export function sttGpuEnabled(): boolean {
+  try {
+    return localStorage.getItem(GPU_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+/** Cambia el uso de la tarjeta gráfica; el modelo se vuelve a cargar con el nuevo ajuste. */
+export function setSttGpu(enabled: boolean) {
+  try {
+    localStorage.setItem(GPU_KEY, enabled ? '1' : '0');
+  } catch {
+    /* sin almacenamiento: vale solo para esta sesión */
+  }
+  if (worker) {
+    worker.terminate();
+    worker = null;
+    pending.forEach((p) => p.reject(new Error('Reconocedor reiniciado.')));
+    pending.clear();
+    setStatus({ state: 'idle', backend: undefined, threads: undefined });
+    loadStt();
+  }
+}
+
 function getWorker(): Worker {
   if (worker) return worker;
   worker = new Worker(new URL('./stt.worker.ts', import.meta.url), { type: 'module' });
@@ -68,7 +101,7 @@ function getWorker(): Worker {
       } catch {
         /* sin almacenamiento: solo se pierde el aviso de «ya descargado» */
       }
-      setStatus({ state: 'ready', progress: 1 });
+      setStatus({ state: 'ready', progress: 1, backend: m.backend, threads: m.threads });
     } else if (m.type === 'result') {
       pending.get(m.id)?.resolve(m.text);
       pending.delete(m.id);
@@ -94,7 +127,7 @@ function getWorker(): Worker {
 export function loadStt() {
   if (status.state === 'loading' || status.state === 'ready') return;
   setStatus({ state: 'loading', progress: 0, error: undefined });
-  getWorker().postMessage({ type: 'load' } satisfies WorkerIn);
+  getWorker().postMessage({ type: 'load', gpu: sttGpuEnabled() } satisfies WorkerIn);
 }
 
 function transcribe(audio: Float32Array, prompt?: string): Promise<string> {
@@ -242,7 +275,12 @@ export function startLocalRecognition(
     const chunks = prepareAudio(pcm);
     if (!chunks) throw new Error(recognitionError('no-speech'));
     const texts: string[] = [];
+    const started = performance.now();
     for (const c of chunks) texts.push(await transcribe(c, opts.prompt));
+    setStatus({
+      lastSeconds: Math.round((performance.now() - started) / 100) / 10,
+      lastAudioSeconds: Math.round(chunks.reduce((n, c) => n + c.length, 0) / RATE),
+    });
     const transcript = cleanTranscript(texts.join(' '));
     if (!transcript) throw new Error(recognitionError('no-speech'));
     return { transcript, alternatives: [transcript] };
