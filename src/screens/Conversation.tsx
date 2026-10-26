@@ -9,7 +9,7 @@ import { moduleUnlocked } from '../engine/unlock';
 import { speak, ttsAvailable } from '../speech/tts';
 import { Icon } from '../components/Icon';
 import { Card, Chip, Empty, PageHeader, Verdict } from '../components/ui';
-import { VoiceInput } from '../components/VoiceInput';
+import { SpokenComposer } from '../components/SpokenComposer';
 import { navigate } from '../router';
 
 export function ConversationList() {
@@ -19,7 +19,7 @@ export function ConversationList() {
       <PageHeader title="Conversación" subtitle="Practica sin guion: responde con tus palabras." back="#/practicar" />
       <Verdict kind="info">
         Son <strong>simulaciones con diálogos predefinidos</strong>, no inteligencia artificial: el interlocutor elige su respuesta según palabras clave de lo que digas.
-        Por eso a veces no reaccionará a todo lo que escribas.
+        Por eso a veces no reaccionará a todo lo que digas.
       </Verdict>
       <ul className="conv-list">
         {CONVERSATIONS.map((c) => {
@@ -77,6 +77,7 @@ export function ConversationPlayer({ id }: { id: string }) {
   const [listenMode, setListenMode] = useState(false);
   const [showEs, setShowEs] = useState(false);
   const [mustRephrase, setMustRephrase] = useState(false);
+  const [spoke, setSpoke] = useState(false);
   const [errors, setErrors] = useState<DetectedError[]>([]);
   const [stats, setStats] = useState({ turns: 0, independent: 0, chunks: new Set<string>() });
   const [finished, setFinished] = useState(false);
@@ -146,7 +147,7 @@ export function ConversationPlayer({ id }: { id: string }) {
       helped,
       ctx: 'conversation',
       prompt: node.say,
-      mode: 'text',
+      mode: spoke ? 'voice' : 'text',
       skills: ['fluency', 'speaking'],
     });
     setErrors((e) => [...e, ...detectErrors(answer)]);
@@ -256,27 +257,8 @@ export function ConversationPlayer({ id }: { id: string }) {
             </div>
           )}
           {mustRephrase && <Verdict kind="close">Cámbialo un poco: usa tus propios datos.</Verdict>}
+          <SpokenComposer key={`${node.id}-${turns.length}`} compact rows={2} text={text} setText={setText} onVoice={() => setSpoke(true)} onEnter={send} />
           <div className="row">
-            <textarea
-              className="input grow"
-              rows={2}
-              lang="en"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Tu respuesta en inglés…"
-              aria-label="Tu respuesta"
-              autoCorrect="off"
-              spellCheck={false}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-            />
-          </div>
-          <div className="row">
-            <VoiceInput compact onText={(t) => setText((p) => (p ? p + ' ' : '') + t)} />
             <button className="btn btn--ghost" onClick={() => setHelp((h) => Math.min(3, h + 1))} disabled={!canHelp || help >= 3}>
               <Icon name="bulb" size={16} /> {help === 0 ? (canHelp ? 'Pista' : 'Inténtalo…') : help === 1 ? 'Estructura' : 'Ejemplo'}
             </button>

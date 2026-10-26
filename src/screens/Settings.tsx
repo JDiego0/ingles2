@@ -100,6 +100,17 @@ export function SettingsScreen() {
       </Card>
 
       <Card>
+        <h2>Cómo responder</h2>
+        <label className="toggle">
+          <input type="checkbox" checked={s.keyboard} onChange={(e) => set({ keyboard: e.target.checked })} /> Responder con el teclado por defecto
+        </label>
+        <p className="muted small">
+          Desactivado (recomendado si no te gusta escribir): respondes hablando o formando la frase con bloques, y el teclado queda como opción en cada ejercicio.
+          Formar la frase con bloques cuenta como «con ayuda»; para dominar una expresión tienes que decirla sin ayuda.
+        </p>
+      </Card>
+
+      <Card>
         <h2>Voz</h2>
         {ttsAvailable() ? (
           <>

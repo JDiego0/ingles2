@@ -28,9 +28,15 @@ El objetivo no es completar ejercicios, sino **poder producir el idioma sin pist
 5. **Producción libre** — hablas o escribes con tus palabras; no hay modelo visible.
 6. **Evaluación y cierre** — preguntas nuevas, tu **pequeña victoria** (decir algo útil sin guion) y un resumen: qué recuperaste, qué necesitó pista, qué falta, errores a corregir y qué repasarás mañana.
 
+### Responder sin teclado
+
+Por defecto respondes **hablando** (botón grande «Responder hablando») o **formando la frase con bloques** (con 1–2 bloques que sobran). El teclado queda como opción («Escribir») en cada ejercicio, o como modo por defecto en **Ajustes → Cómo responder**. Formar la frase con bloques cuenta como «con ayuda»: para dominar una expresión hay que decirla sin ayuda.
+
+En la producción libre, la victoria y las conversaciones, cada vez que pulsas el micrófono se añade lo que dijiste; puedes quitar lo último o borrar.
+
 ### Ayuda progresiva (nunca «Siguiente» gratis)
 
-Intentas → pista pequeña (primeras letras) → ayuda mayor (mitad de la frase) → modelo → **lo vuelves a escribir sin verlo**. La pista solo aparece después de un intento o de unos segundos.
+Intentas → pista pequeña (primeras letras) → ayuda mayor (mitad de la frase) → modelo → **la vuelves a decir (o formar) sin verla**. La pista solo aparece después de un intento o de unos segundos.
 
 ### Dominio real
 
@@ -57,7 +63,7 @@ En modo «Progresivo» (por defecto): etapa A en español, etapa B bilingüe, et
 - Web Speech API: síntesis de voz (en-US) y reconocimiento cuando el navegador lo ofrece; si no, grabación local con MediaRecorder o respuesta escrita.
 - PWA: `manifest.webmanifest`, iconos y service worker generado en cada build con la lista exacta de archivos y una versión por contenido (las cachés antiguas se borran al activar la nueva versión; la app avisa «Hay una versión nueva» en lugar de recargar a mitad de una lección).
 - Progreso en `localStorage` con validación, migración, exportación/importación JSON y pantalla de recuperación si los datos se dañan. Varias pestañas abiertas no se pisan entre sí.
-- Vitest: 69 pruebas (validación de respuestas, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
+- Vitest: 74 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
 
 ## Estructura
 
@@ -152,6 +158,7 @@ La app usa rutas relativas (`base: './'` y rutas con `#`), así que funciona con
 **Voz**
 - La síntesis de voz depende del dispositivo. En Android: Ajustes → Sistema → Idioma → Salida de texto a voz → instala *Inglés (Estados Unidos)* en «Síntesis de voz de Google» (permite usarla sin conexión). Puedes elegir voz y velocidad en Ajustes.
 - El **reconocimiento de voz** (responder hablando) funciona en Chrome para Android, pero **normalmente necesita internet** porque el audio se procesa en servidores del navegador. Sin conexión o en navegadores sin soporte, la app ofrece grabarte y escucharte, o responder por escrito.
+- Chrome para Android repite fragmentos del reconocimiento («hello hello my…»); la app escucha una frase cada vez, reconstruye el texto y elimina repeticiones. Entre las interpretaciones posibles prefiere la que coincide con la respuesta esperada o contiene tu nombre.
 - La transcripción solo indica qué palabras reconoció el navegador: **no evalúa tu pronunciación** en detalle ni la app lo afirma.
 
 **Corrección automática**

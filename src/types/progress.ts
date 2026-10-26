@@ -105,6 +105,8 @@ export interface Settings {
   instructions: 'auto' | 'es' | 'en';
   dailyGoalMin: number;
   autoplay: boolean;
+  /** false: se responde hablando, eligiendo u ordenando bloques; el teclado queda como opción secundaria. */
+  keyboard: boolean;
 }
 
 export interface LessonSession {

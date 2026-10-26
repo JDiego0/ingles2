@@ -72,7 +72,7 @@ function ListenView({ ex, mode, onDone, doneLabel }: ExerciseProps<ListenExercis
           <p className="context-line" lang="en">{ex.fallbackGap ?? ex.text.replace(/\b(\w{4,})\b/g, (w, _a, i) => (i % 3 === 0 ? '___' : w))}</p>
         </Verdict>
       )}
-      <AnswerFlow accept={ex.accept ?? [ex.text]} onDone={onDone} doneLabel={doneLabel} voice={false} placeholder="Escribe lo que escuchas…" />
+      <AnswerFlow accept={ex.accept ?? [ex.text]} onDone={onDone} doneLabel={doneLabel} placeholder="Escribe lo que escuchas…" />
     </div>
   );
 }

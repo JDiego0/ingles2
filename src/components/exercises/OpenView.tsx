@@ -7,7 +7,7 @@ import { chunkById } from '../../content/course';
 import { Icon } from '../Icon';
 import { Verdict } from '../ui';
 import { Listen } from '../Audio';
-import { VoiceInput } from '../VoiceInput';
+import { SpokenComposer } from '../SpokenComposer';
 import { Prompt } from './Prompt';
 import type { ExerciseProps } from './types';
 
@@ -180,35 +180,15 @@ export function OpenView({ ex, mode, onDone, doneLabel = 'Continuar' }: Exercise
           <p className="reveal__text" lang="en">{ex.model}</p>
           <Listen text={ex.model} />
           <button type="button" className="btn btn--primary btn--block" onClick={() => setShowModel(false)}>
-            Ocultar y escribir MI versión
+            Ocultar y decir MI versión
           </button>
         </div>
       ) : (
         <>
-          <label className="sr-only" htmlFor="open-input">Tu respuesta en inglés</label>
-          <textarea
-            id="open-input"
-            className="input input--tall"
-            rows={4}
-            lang="en"
-            value={text}
-            placeholder="Escribe o di tu respuesta en inglés…"
-            autoCapitalize="sentences"
-            autoCorrect="off"
-            spellCheck={false}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <div className="row row--between">
-            <span className={`small ${words >= ex.minWords ? 'ok-text' : 'muted'}`}>
-              {words} / {ex.minWords} palabras
-            </span>
-            <VoiceInput
-              onText={(t) => {
-                setText((prev) => (prev ? prev.trim() + ' ' : '') + t);
-                setUsedVoice(true);
-              }}
-            />
-          </div>
+          <SpokenComposer text={text} setText={setText} onVoice={() => setUsedVoice(true)} rows={4} placeholder="Tu respuesta en inglés…" />
+          <p className={`small ${words >= ex.minWords ? 'ok-text' : 'muted'}`}>
+            {words} / {ex.minWords} palabras
+          </p>
           {warning && <Verdict kind="close">{warning}</Verdict>}
           <div className="row">
             <button type="button" className="btn btn--primary grow" onClick={submit} disabled={words < 1}>

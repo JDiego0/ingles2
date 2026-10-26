@@ -9,7 +9,7 @@ export interface ExerciseResult {
   given: string;
   hints: number;
   revealed: boolean;
-  mode: 'text' | 'voice' | 'choice' | 'self';
+  mode: 'text' | 'voice' | 'choice' | 'self' | 'tiles';
 }
 
 export interface ExerciseProps<E extends Exercise = Exercise> {

@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   instructions: 'auto',
   dailyGoalMin: 30,
   autoplay: true,
+  keyboard: false,
 };
 
 export function createInitialState(now = Date.now()): ProgressState {

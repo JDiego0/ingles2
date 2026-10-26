@@ -9,7 +9,7 @@ import { ExerciseView } from '../../components/exercises/ExerciseView';
 import type { ExerciseResult } from '../../components/exercises/types';
 import { ChunkCard } from '../../components/ChunkCard';
 import { Listen, useSpeaker } from '../../components/Audio';
-import { VoiceInput } from '../../components/VoiceInput';
+import { SpokenComposer } from '../../components/SpokenComposer';
 import { Icon } from '../../components/Icon';
 import { Verdict } from '../../components/ui';
 import { ttsAvailable } from '../../speech/tts';
@@ -255,20 +255,14 @@ export function VictoryStep({ lesson, onDone }: { lesson: Lesson; onDone: (grade
         <Icon name="trophy" size={32} />
         <h2>Tu victoria de hoy</h2>
         <p>{lesson.victory.prompt}</p>
-        <p className="muted small">Sin mirar notas. Hablando (si tu navegador lo permite) o escribiendo.</p>
+        <p className="muted small">Sin mirar notas. Dilo en voz alta con tus palabras.</p>
       </div>
       {!found || (!success && tries < 2) ? (
         <>
           {found && !success && <Verdict kind="close">Casi. Intenta incluir una de las expresiones de hoy y algún detalle más.</Verdict>}
-          <textarea className="input input--tall" rows={3} lang="en" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tu respuesta en inglés…" aria-label="Tu respuesta" autoCorrect="off" spellCheck={false} />
-          <div className="row row--between">
-            <VoiceInput
-              onText={(t) => {
-                setText((p) => (p ? p + ' ' : '') + t);
-                setMode('voice');
-              }}
-            />
-            <button type="button" className="btn btn--primary" onClick={submit} disabled={wordCount(text) < 2}>
+          <SpokenComposer text={text} setText={setText} onVoice={() => setMode('voice')} />
+          <div className="row">
+            <button type="button" className="btn btn--primary grow" onClick={submit} disabled={wordCount(text) < 2}>
               Enviar
             </button>
           </div>
