@@ -11,9 +11,16 @@ import { ExerciseView } from '../components/exercises/ExerciseView';
 import type { ExerciseResult } from '../components/exercises/types';
 import { Icon } from '../components/Icon';
 import { Card, Chip, Empty, Verdict } from '../components/ui';
+import { SpeechHints } from '../components/SpeechHints';
 import { ContextStep, DescriptorList, GrammarStep, PhaseIntro, TeachStep, VictoryStep } from './lesson/Steps';
 import type { Lesson } from '../types/content';
 import type { LessonSession } from '../types/progress';
+
+/** Lo que se oye y se practica en la lección: el micrófono lo usa como pista. */
+function lessonVocabulary(lesson: Lesson): string[] {
+  const chunks = lesson.newChunks.map((id) => chunkById.get(id)).filter((c) => !!c);
+  return [...chunks.flatMap((c) => [c.en, c.example.en]), ...lesson.context.lines.map((l) => l.en)];
+}
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const { state, act } = useProgress();
@@ -91,7 +98,9 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
 
       {firstOfPhase && current.kind !== 'summary' && <PhaseIntro {...PHASES[current.phase]} mode={mode} />}
 
-      <div key={session.step}>{renderStep(current)}</div>
+      <SpeechHints texts={lessonVocabulary(lesson)}>
+        <div key={session.step}>{renderStep(current)}</div>
+      </SpeechHints>
     </div>
   );
 

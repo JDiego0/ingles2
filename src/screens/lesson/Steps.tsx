@@ -254,7 +254,7 @@ export function VictoryStep({ lesson, onDone }: { lesson: Lesson; onDone: (grade
       {!found || (!success && tries < 2) ? (
         <>
           {found && !success && <Verdict kind="close">Casi. Intenta incluir una de las expresiones de hoy y algún detalle más.</Verdict>}
-          <SpokenComposer text={text} setText={setText} onVoice={() => setMode('voice')} />
+          <SpokenComposer text={text} setText={setText} onVoice={() => setMode('voice')} hints={[lesson.victory.model, ...targets.map((c) => c.en)]} />
           <div className="row">
             <button type="button" className="btn btn--primary grow" onClick={submit} disabled={wordCount(text) < 2}>
               Enviar

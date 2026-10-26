@@ -181,7 +181,7 @@ export function SettingsScreen() {
             </label>
             <p className="muted small">
               «En el teléfono» entiende mejor el inglés con acento, graba sin cortes hasta que pulsas «Listo» y funciona sin internet. Necesita
-              descargar un modelo una sola vez (unos 63 MB) y tarda un par de segundos en transcribir. El de Chrome muestra el texto mientras hablas,
+              descargar un modelo una sola vez (unos 140 MB) y tarda un par de segundos en transcribir. El de Chrome muestra el texto mientras hablas,
               pero necesita internet y en Android puede cortarse en las pausas.
             </p>
             {s.stt === 'local' && localSttSupported() && (
@@ -194,11 +194,25 @@ export function SettingsScreen() {
                   <>Descargando: {Math.round(stt.progress * 100)} %{stt.totalMb ? ` de ${stt.totalMb} MB` : ''}…</>
                 ) : (
                   <button type="button" className="btn btn--soft btn--sm" onClick={loadStt}>
-                    <Icon name="download" size={14} /> Descargar ahora (63 MB)
+                    <Icon name="download" size={14} /> Descargar ahora (140 MB)
                   </button>
                 )}
               </p>
             )}
+            <label className="field">
+              <span>Palabras que dices a menudo</span>
+              <input
+                className="input"
+                value={s.speechWords ?? ''}
+                onChange={(e) => set({ speechWords: e.target.value })}
+                placeholder="Ej.: Envigado, Bancolombia, Laura, Rappi"
+                maxLength={300}
+              />
+            </label>
+            <p className="muted small">
+              Nombres de tu ciudad, tu barrio, tu empresa o tu familia, separados por comas. El micrófono ya conoce tu nombre, las ciudades de
+              Colombia y las palabras de cada lección: si dices algo parecido, lo escribe bien.
+            </p>
           </>
         ) : (
           <p className="muted small">Este navegador no puede transcribir voz. Puedes grabarte y escucharte, o responder escribiendo.</p>

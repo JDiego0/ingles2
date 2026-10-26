@@ -257,7 +257,16 @@ export function ConversationPlayer({ id }: { id: string }) {
             </div>
           )}
           {mustRephrase && <Verdict kind="close">Cámbialo un poco: usa tus propios datos.</Verdict>}
-          <SpokenComposer key={`${node.id}-${turns.length}`} compact rows={2} text={text} setText={setText} onVoice={() => setSpoke(true)} onEnter={send} />
+          <SpokenComposer
+            key={`${node.id}-${turns.length}`}
+            compact
+            rows={2}
+            text={text}
+            setText={setText}
+            onVoice={() => setSpoke(true)}
+            onEnter={send}
+            hints={[node.say, node.model, node.frame, ...(node.targets ?? []).map((t) => chunkById.get(t)?.en ?? '')]}
+          />
           <div className="row">
             <button className="btn btn--ghost" onClick={() => setHelp((h) => Math.min(3, h + 1))} disabled={!canHelp || help >= 3}>
               <Icon name="bulb" size={16} /> {help === 0 ? (canHelp ? 'Pista' : 'Inténtalo…') : help === 1 ? 'Estructura' : 'Ejemplo'}

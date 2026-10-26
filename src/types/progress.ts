@@ -113,6 +113,8 @@ export interface Settings {
   stt: 'local' | 'browser';
   /** Sonidos de acierto, error y micrófono. */
   sounds: boolean;
+  /** Nombres y palabras que dices a menudo (tu ciudad, tu empresa…), separados por comas: el micrófono los reconoce mejor. */
+  speechWords?: string;
 }
 
 export interface LessonSession {

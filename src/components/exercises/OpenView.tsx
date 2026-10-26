@@ -185,7 +185,14 @@ export function OpenView({ ex, mode, onDone, doneLabel = 'Continuar' }: Exercise
         </div>
       ) : (
         <>
-          <SpokenComposer text={text} setText={setText} onVoice={() => setUsedVoice(true)} rows={4} placeholder="Tu respuesta en inglés…" />
+          <SpokenComposer
+            text={text}
+            setText={setText}
+            onVoice={() => setUsedVoice(true)}
+            rows={4}
+            placeholder="Tu respuesta en inglés…"
+            hints={[ex.model, ex.frame ?? '', ...targets.map((c) => c.en)]}
+          />
           <p className={`small ${words >= ex.minWords ? 'ok-text' : 'muted'}`}>
             {words} / {ex.minWords} palabras
           </p>

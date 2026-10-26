@@ -259,6 +259,7 @@ function SpeakView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps<
       )}
       {sr ? (
         <VoiceInput
+          hints={[ex.text]}
           onText={(t) => {
             setTranscript(t);
             if (wordOverlap(t, ex.text) >= 0.8) soundSuccess();

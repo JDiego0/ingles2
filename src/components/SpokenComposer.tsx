@@ -16,6 +16,7 @@ export function SpokenComposer({
   rows = 3,
   compact,
   onEnter,
+  hints,
 }: {
   text: string;
   setText: (t: string) => void;
@@ -25,6 +26,8 @@ export function SpokenComposer({
   /** Versión reducida (conversación). */
   compact?: boolean;
   onEnter?: () => void;
+  /** Frases esperadas o del tema para el micrófono. */
+  hints?: string[];
 }) {
   const { state } = useProgress();
   const canVoice = speechInputAvailable();
@@ -63,7 +66,7 @@ export function SpokenComposer({
         />
         {canVoice && (
           <div className="row row--between">
-            <VoiceInput compact onText={add} />
+            <VoiceInput compact hints={hints} onText={add} />
             <button type="button" className="link-btn" onClick={() => setTyping(false)}>
               <Icon name="mic" size={14} /> Prefiero hablar
             </button>
@@ -95,7 +98,7 @@ export function SpokenComposer({
           <span className="muted">Pulsa el micrófono y di tu respuesta. Si hablas otra vez, se añade al final.</span>
         </div>
       )}
-      <VoiceInput big label={text ? 'Añadir más' : 'Responder hablando'} onText={add} />
+      <VoiceInput big hints={hints} label={text ? 'Añadir más' : 'Responder hablando'} onText={add} />
       <div className="row row--between">
         <div className="row">
           {history.length > 0 && (

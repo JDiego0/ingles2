@@ -8,7 +8,8 @@ import { recognitionError, type RecognitionOutcome } from './recognition';
 import type { WorkerIn, WorkerOut } from './stt.worker';
 
 const RATE = 16000;
-const DOWNLOADED_KEY = 'english-journey:stt-model';
+// v2: Whisper (antes Moonshine). Con otra clave, se vuelve a pedir permiso para la descarga nueva.
+const DOWNLOADED_KEY = 'english-journey:stt-model-v2';
 
 export function localSttSupported(): boolean {
   return (
@@ -96,12 +97,12 @@ export function loadStt() {
   getWorker().postMessage({ type: 'load' } satisfies WorkerIn);
 }
 
-function transcribe(audio: Float32Array): Promise<string> {
+function transcribe(audio: Float32Array, prompt?: string): Promise<string> {
   loadStt();
   const id = nextId++;
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    getWorker().postMessage({ type: 'transcribe', id, audio } satisfies WorkerIn, [audio.buffer]);
+    getWorker().postMessage({ type: 'transcribe', id, audio, prompt } satisfies WorkerIn, [audio.buffer]);
   });
 }
 
@@ -169,9 +170,11 @@ export interface LocalRecognitionHandle {
 
 /**
  * Graba hasta `stop()` (máx. 3 min) y transcribe. `onLevel` recibe el volumen (0–1) mientras
- * se graba; `onPhase` avisa cuando empieza a transcribir.
+ * se graba; `onPhase` avisa cuando empieza a transcribir; `prompt` es el vocabulario del tema.
  */
-export function startLocalRecognition(opts: { onLevel?: (v: number) => void; onPhase?: (p: 'recording' | 'transcribing') => void } = {}): LocalRecognitionHandle {
+export function startLocalRecognition(
+  opts: { onLevel?: (v: number) => void; onPhase?: (p: 'recording' | 'transcribing') => void; prompt?: string } = {},
+): LocalRecognitionHandle {
   loadStt();
   let stopRequested = false;
   let cancelled = false;
@@ -239,7 +242,7 @@ export function startLocalRecognition(opts: { onLevel?: (v: number) => void; onP
     const chunks = prepareAudio(pcm);
     if (!chunks) throw new Error(recognitionError('no-speech'));
     const texts: string[] = [];
-    for (const c of chunks) texts.push(await transcribe(c));
+    for (const c of chunks) texts.push(await transcribe(c, opts.prompt));
     const transcript = cleanTranscript(texts.join(' '));
     if (!transcript) throw new Error(recognitionError('no-speech'));
     return { transcript, alternatives: [transcript] };

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { recognitionAvailable, startRecognition } from '../speech/recognition';
 import { localSttSupported, loadStt, onSttStatus, sttModelDownloaded, sttStatus, startLocalRecognition, type SttStatus } from '../speech/stt';
 import { stopSpeaking } from '../speech/tts';
 import { soundMicOff, soundMicOn } from '../speech/sounds';
 import { recorderAvailable, startRecording, type Recording } from '../speech/recorder';
+import { COMMON_PROPER, correctTranscript, promptFor, termsFrom } from '../speech/vocab';
+import { useSpeechHints } from './SpeechHints';
 import { useProgress } from '../state/ProgressContext';
 import type { Settings } from '../types/progress';
 
@@ -39,6 +41,7 @@ export function VoiceInput({
   compact,
   big,
   pick,
+  hints,
   label = 'Hablar',
 }: {
   onText: (text: string) => void;
@@ -47,6 +50,8 @@ export function VoiceInput({
   big?: boolean;
   /** Elige entre las interpretaciones del reconocedor (p. ej., la que coincide con la respuesta). */
   pick?: (alternatives: string[]) => string | undefined;
+  /** Frases esperadas o del tema (además de las de <SpeechHints>): ayudan a entender lo que dices. */
+  hints?: string[];
   label?: string;
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -61,6 +66,13 @@ export function VoiceInput({
   // si alguna interpretación contiene tu nombre, se prefiere esa.
   const name = state.name.trim().toLowerCase();
   const choose = (alts: string[]) => pick?.(alts) ?? (name ? alts.find((a) => a.toLowerCase().includes(name)) : undefined);
+  // Vocabulario del tema, tu nombre y tus palabras: se le pasan al modelo y luego se corrige lo que suene parecido.
+  const context = useSpeechHints();
+  const hintKey = [...context, ...(hints ?? [])].join('\n');
+  const terms = useMemo(
+    () => termsFrom([...context, ...(hints ?? [])], [state.name, state.settings.speechWords ?? ''], COMMON_PROPER),
+    [hintKey, state.name, state.settings.speechWords], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // Si el modelo ya está en el teléfono, se carga en memoria para que responda rápido.
   useEffect(() => {
@@ -78,7 +90,7 @@ export function VoiceInput({
 
   const done = (result: Promise<{ transcript: string }>) =>
     result
-      .then((r) => onText(r.transcript))
+      .then((r) => onText(correctTranscript(r.transcript, terms)))
       .catch((e: Error) => {
         if (!/cancelada/i.test(e.message)) setError(e.message);
       })
@@ -102,6 +114,7 @@ export function VoiceInput({
       // El aviso «te escucho» y el sonido llegan cuando el micrófono ya graba: así no se pierde la primera palabra.
       setPhase('starting');
       const h = startLocalRecognition({
+        prompt: promptFor(terms),
         onLevel: setLevel,
         onPhase: (p) => {
           if (p === 'recording') soundMicOn();
@@ -130,7 +143,7 @@ export function VoiceInput({
       <div className="voice voice__consent">
         <p>
           <strong>Para entenderte mucho mejor</strong>, la app usa un reconocedor de voz que funciona dentro de tu teléfono. Se descarga{' '}
-          <strong>una sola vez</strong> (unos 63 MB, mejor con Wi-Fi) y después funciona incluso sin internet.
+          <strong>una sola vez</strong> (unos 140 MB, mejor con Wi-Fi) y después funciona incluso sin internet.
         </p>
         <div className="row">
           <button type="button" className="btn btn--primary grow" onClick={() => start(true)}>

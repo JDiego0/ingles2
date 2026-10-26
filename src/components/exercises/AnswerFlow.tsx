@@ -253,6 +253,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
           big
           label="Responder hablando"
           pick={(alts) => pickMatching(alts, accept, keys, anyOf)}
+          hints={accept}
           onText={(t) => {
             setText(t);
             setHeard(t);
@@ -291,6 +292,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
                 compact
                 label="Decirlo otra vez"
                 pick={(alts) => pickMatching(alts, accept, keys, anyOf)}
+                hints={accept}
                 onText={(t) => {
                   setText(t);
                   setHeard(t);
@@ -336,6 +338,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
                 <VoiceInput
                   compact
                   pick={(alts) => pickMatching(alts, accept, keys, anyOf)}
+                  hints={accept}
                   onText={(t) => {
                     setText(t);
                     setUsedVoice(true);
