@@ -70,7 +70,7 @@ export function VoiceInput({
       </button>
       {listening && (
         <p className="voice__interim" aria-live="polite">
-          <span className="pulse" aria-hidden="true" /> {interim || 'Te escucho… di la frase una vez, en inglés.'}
+          <span className="pulse" aria-hidden="true" /> {interim || 'Te escucho… puedes pausar para pensar. Pulsa «Listo» cuando termines.'}
         </p>
       )}
       {error && <p className="voice__error" role="alert">{error}</p>}

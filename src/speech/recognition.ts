@@ -5,8 +5,8 @@
  *
  * Chrome para Android repite resultados: con `continuous` cada resultado nuevo trae
  * de nuevo el texto anterior («hello», «hello my», «hello my name»…) y a veces el mismo
- * resultado final llega dos veces. Por eso se escucha una sola frase (`continuous = false`),
- * el texto se reconstruye entero en cada evento y se fusionan los fragmentos solapados.
+ * resultado final llega dos veces. Por eso el texto se reconstruye entero en cada evento
+ * y se fusionan los fragmentos solapados.
  */
 
 interface RecognitionAlternativeLike {
@@ -132,7 +132,9 @@ export function candidatesFrom(results: ArrayLike<RecognitionResultLike>): strin
 }
 
 /**
- * Escucha una frase en inglés de EE. UU. Termina sola al dejar de hablar o con `stop()`.
+ * Escucha en inglés de EE. UU. hasta que se llama a `stop()` (el botón «Listo»).
+ * El navegador corta solo al detectar silencio; si todavía no se pulsó «Listo», se vuelve a
+ * escuchar enseguida y se suma lo nuevo, así puedes pausar para pensar sin perder la grabación.
  * `pick` elige entre las interpretaciones posibles (por ejemplo, la que coincide con la respuesta esperada).
  */
 export function startRecognition(onInterim?: (text: string) => void, pick?: (alternatives: string[]) => string | undefined): RecognitionHandle {
@@ -140,37 +142,99 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
   if (!C) {
     return { stop() {}, result: Promise.reject(new Error('Reconocimiento de voz no disponible en este navegador.')) };
   }
-  const rec = new C();
-  rec.lang = 'en-US';
-  rec.interimResults = true;
-  rec.maxAlternatives = 5;
-  rec.continuous = false;
+  const MAX_MS = 3 * 60_000;
+  const startedAt = Date.now();
+  /** Texto de las sesiones ya terminadas. */
+  const segments: string[] = [];
+  /** Interpretaciones de la sesión en curso y de la última con texto. */
   let candidates: string[] = [];
+  let lastAlts: string[] = [];
+  let stopped = false;
+  let settled = false;
+  let listening = false;
+  let quickEmpty = 0;
+  let rec: RecognitionLike | null = null;
+  let resolveFn: (r: RecognitionOutcome) => void = () => {};
+  let rejectFn: (e: Error) => void = () => {};
   const result = new Promise<RecognitionOutcome>((resolve, reject) => {
-    let settled = false;
-    const done = () => {
-      if (settled) return;
-      settled = true;
-      if (!candidates.length) reject(new Error(recognitionError('no-speech')));
-      else resolve({ transcript: pick?.(candidates) ?? candidates[0], alternatives: candidates });
-    };
-    rec.onresult = (e) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+  const joined = (last: string) => mergePieces([...segments, last]);
+
+  const finish = (errorCode?: string) => {
+    if (settled) return;
+    settled = true;
+    if (candidates.length) {
+      segments.push(candidates[0]);
+      lastAlts = candidates;
+    }
+    if (!segments.length) {
+      rejectFn(new Error(recognitionError(errorCode ?? 'no-speech')));
+      return;
+    }
+    const before = segments.slice(0, -1);
+    const alternatives = [...new Set((lastAlts.length ? lastAlts : [segments[segments.length - 1]]).map((a) => mergePieces([...before, a])))];
+    resolveFn({ transcript: pick?.(alternatives) ?? alternatives[0], alternatives });
+  };
+
+  const session = () => {
+    if (settled) return;
+    const r = new C();
+    rec = r;
+    r.lang = 'en-US';
+    r.interimResults = true;
+    r.maxAlternatives = 5;
+    r.continuous = true;
+    const sessionStart = Date.now();
+    let fatal: string | null = null;
+    r.onresult = (e) => {
       // Se reconstruye desde el principio en cada evento: nunca se acumula texto repetido.
       candidates = candidatesFrom(e.results);
-      onInterim?.(candidates[0] ?? '');
+      onInterim?.(joined(candidates[0] ?? ''));
     };
-    rec.onerror = (e) => {
-      if (settled) return;
-      if ((e.error === 'no-speech' || e.error === 'aborted') && candidates.length) return done();
-      settled = true;
-      reject(new Error(recognitionError(e.error)));
+    r.onerror = (e) => {
+      // Silencio o corte del navegador: no es un fallo, se sigue escuchando.
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      fatal = e.error;
     };
-    rec.onend = done;
-  });
-  try {
-    rec.start();
-  } catch (err) {
-    return { stop() {}, result: Promise.reject(err instanceof Error ? err : new Error(String(err))) };
-  }
-  return { stop: () => rec.stop(), result };
+    r.onend = () => {
+      listening = false;
+      const hadText = candidates.length > 0;
+      if (hadText) {
+        segments.push(candidates[0]);
+        lastAlts = candidates;
+        candidates = [];
+      }
+      if (fatal) return finish(fatal);
+      if (stopped || Date.now() - startedAt > MAX_MS) return finish();
+      // Evita un bucle infinito si el navegador corta una y otra vez sin escuchar nada.
+      quickEmpty = !hadText && Date.now() - sessionStart < 1000 ? quickEmpty + 1 : 0;
+      if (quickEmpty >= 4) return finish();
+      setTimeout(session, 60);
+    };
+    try {
+      r.start();
+      listening = true;
+    } catch (err) {
+      if (!segments.length) {
+        settled = true;
+        rejectFn(err instanceof Error ? err : new Error(String(err)));
+      } else finish();
+    }
+  };
+
+  session();
+  return {
+    stop: () => {
+      if (stopped) return;
+      stopped = true;
+      if (listening && rec) {
+        rec.stop();
+        // Por si el navegador no avisa del final.
+        setTimeout(() => finish(), 1500);
+      } else finish();
+    },
+    result,
+  };
 }

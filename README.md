@@ -63,7 +63,7 @@ En modo «Progresivo» (por defecto): etapa A en español, etapa B bilingüe, et
 - Web Speech API: síntesis de voz (en-US) y reconocimiento cuando el navegador lo ofrece; si no, grabación local con MediaRecorder o respuesta escrita.
 - PWA: `manifest.webmanifest`, iconos y service worker generado en cada build con la lista exacta de archivos y una versión por contenido (las cachés antiguas se borran al activar la nueva versión; la app avisa «Hay una versión nueva» en lugar de recargar a mitad de una lección).
 - Progreso en `localStorage` con validación, migración, exportación/importación JSON y pantalla de recuperación si los datos se dañan. Varias pestañas abiertas no se pisan entre sí.
-- Vitest: 79 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
+- Vitest: 81 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
 
 ## Estructura
 
@@ -158,7 +158,8 @@ La app usa rutas relativas (`base: './'` y rutas con `#`), así que funciona con
 **Voz**
 - La síntesis de voz depende del dispositivo. En Android: Ajustes → Sistema → Idioma → Salida de texto a voz → instala *Inglés (Estados Unidos)* en «Síntesis de voz de Google» (permite usarla sin conexión). Puedes elegir voz y velocidad en Ajustes.
 - El **reconocimiento de voz** (responder hablando) funciona en Chrome para Android, pero **normalmente necesita internet** porque el audio se procesa en servidores del navegador. Sin conexión o en navegadores sin soporte, la app ofrece grabarte y escucharte, o responder por escrito.
-- Chrome para Android repite fragmentos del reconocimiento («hello hello my…»); la app escucha una frase cada vez, reconstruye el texto y elimina repeticiones. Entre las interpretaciones posibles prefiere la que coincide con la respuesta esperada o contiene tu nombre.
+- El micrófono **sigue escuchando hasta que pulsas «Listo»**, aunque hagas pausas para pensar (el navegador corta al detectar silencio y la app vuelve a escuchar sola; en algunos Android suena un pitido al reanudar).
+- Chrome para Android repite fragmentos del reconocimiento («hello hello my…»); la app reconstruye el texto y elimina repeticiones. Entre las interpretaciones posibles prefiere la que coincide con la respuesta esperada o contiene tu nombre.
 - La transcripción solo indica qué palabras reconoció el navegador: **no evalúa tu pronunciación** en detalle ni la app lo afirma.
 
 **Corrección automática**

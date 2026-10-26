@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidatesFrom, collapseRepeats, mergePieces } from '../src/speech/recognition';
 import { pickMatching } from '../src/components/exercises/AnswerFlow';
 import { bankFor } from '../src/components/exercises/WordBank';
@@ -39,5 +39,78 @@ describe('bloques de palabras', () => {
     for (const w of target.split(' ')) expect(bank).toContain(w);
     expect(bank.length).toBeLessThanOrEqual(target.split(' ').length + 2);
     expect(bank).toContain('are');
+  });
+});
+
+describe('micrófono: sigue escuchando hasta pulsar «Listo»', () => {
+  /** Reconocedor falso: cada sesión «oye» el siguiente guion y termina sola (silencio). */
+  function fakeRecognizer(scripts: string[][]) {
+    const sessions: FakeRec[] = [];
+    class FakeRec {
+      lang = '';
+      interimResults = false;
+      maxAlternatives = 1;
+      continuous = false;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: { error: string }) => void) | null = null;
+      onend: (() => void) | null = null;
+      ended = false;
+      start() {
+        sessions.push(this);
+        const steps = scripts[sessions.length - 1] ?? [];
+        const res: ReturnType<typeof result>[] = [];
+        steps.forEach((t, i) =>
+          setTimeout(() => {
+            // Como Chrome Android: cada resultado repite el texto anterior.
+            res.push(result(true, t));
+            this.onresult?.({ resultIndex: res.length - 1, results: [...res] });
+          }, 100 * (i + 1)),
+        );
+        if (!steps.length) setTimeout(() => this.onerror?.({ error: 'no-speech' }), 50);
+        // Silencio: el navegador corta la sesión.
+        setTimeout(() => this.end(), 100 * steps.length + 300);
+      }
+      end() {
+        if (this.ended) return;
+        this.ended = true;
+        this.onend?.();
+      }
+      stop() {
+        setTimeout(() => this.end(), 20);
+      }
+      abort() {
+        this.end();
+      }
+    }
+    vi.stubGlobal('window', { webkitSpeechRecognition: FakeRec });
+    return sessions;
+  }
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('una pausa para pensar no corta la grabación y el texto no se duplica', async () => {
+    const sessions = fakeRecognizer([['I live', 'I live in Medellín'], [], ['and I work', 'and I work from home']]);
+    const { startRecognition } = await import('../src/speech/recognition');
+    const interim: string[] = [];
+    const h = startRecognition((t) => interim.push(t));
+    await vi.advanceTimersByTimeAsync(2500);
+    h.stop();
+    await vi.advanceTimersByTimeAsync(500);
+    const r = await h.result;
+    expect(r.transcript).toBe('I live in Medellín and I work from home');
+    expect(sessions.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('sin hablar nada, termina con un aviso en vez de escuchar para siempre', async () => {
+    fakeRecognizer([[], [], [], [], [], []]);
+    const { startRecognition } = await import('../src/speech/recognition');
+    const h = startRecognition();
+    const settled = h.result.catch((e: Error) => e.message);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await settled).toMatch(/No te escuché/);
   });
 });
