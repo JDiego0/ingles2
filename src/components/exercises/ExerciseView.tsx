@@ -3,15 +3,15 @@ import type { ChoiceExercise, Exercise, ListenExercise, OrderExercise, SpeakExer
 import { checkAnswer, wordOverlap } from '../../engine/answer';
 import { seededShuffle } from '../../utils/random';
 import { ttsAvailable } from '../../speech/tts';
-import { recognitionAvailable } from '../../speech/recognition';
 import { Icon } from '../Icon';
 import { Verdict } from '../ui';
 import { AudioFailed, Listen, useSpeaker } from '../Audio';
-import { SelfRecorder, VoiceInput } from '../VoiceInput';
+import { SelfRecorder, VoiceInput, speechInputAvailable } from '../VoiceInput';
 import { AnswerFlow } from './AnswerFlow';
 import { OpenView } from './OpenView';
 import { Prompt } from './Prompt';
 import type { ExerciseProps } from './types';
+import { soundError, soundSuccess } from '../../speech/sounds';
 
 /** Muestra un ejercicio de cualquier tipo. */
 export function ExerciseView(props: ExerciseProps) {
@@ -100,7 +100,10 @@ function ChoiceView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps
         {options.map(({ o, i }) => {
           const state = picked === null ? '' : i === ex.answer ? 'option--ok' : i === picked ? 'option--bad' : 'option--dim';
           return (
-            <button key={i} type="button" className={`option ${state}`} disabled={picked !== null} onClick={() => setPicked(i)} lang={/[a-z]{3,}/i.test(o) && !/[áéíóúñ¿¡]/i.test(o) ? 'en' : 'es'}>
+            <button key={i} type="button" className={`option ${state}`} disabled={picked !== null} onClick={() => {
+              setPicked(i);
+              (i === ex.answer ? soundSuccess : soundError)();
+            }} lang={/[a-z]{3,}/i.test(o) && !/[áéíóúñ¿¡]/i.test(o) ? 'en' : 'es'}>
               <span>{o}</span>
               {picked !== null && i === ex.answer && <Icon name="check" size={18} label="correcta" />}
               {picked === i && i !== ex.answer && <Icon name="x" size={18} label="tu elección, incorrecta" />}
@@ -144,6 +147,7 @@ function OrderView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps<
   const check = () => {
     const res = checkAnswer(answer, [ex.sentence, ...(ex.accept ?? [])]);
     setStatus(res.result === 'correct' ? 'ok' : 'bad');
+    (res.result === 'correct' ? soundSuccess : soundError)();
   };
 
   const hint = () => {
@@ -241,7 +245,7 @@ function OrderView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps<
 
 function SpeakView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps<SpeakExercise>) {
   const [transcript, setTranscript] = useState('');
-  const sr = recognitionAvailable();
+  const sr = speechInputAvailable();
   const overlap = transcript ? wordOverlap(transcript, ex.text) : 0;
   return (
     <div className="exercise">
@@ -253,7 +257,16 @@ function SpeakView({ ex, mode, onDone, doneLabel = 'Continuar' }: ExerciseProps<
           <Icon name="bulb" size={16} /> {ex.focus}
         </p>
       )}
-      {sr ? <VoiceInput onText={setTranscript} /> : <SelfRecorder />}
+      {sr ? (
+        <VoiceInput
+          onText={(t) => {
+            setTranscript(t);
+            if (wordOverlap(t, ex.text) >= 0.8) soundSuccess();
+          }}
+        />
+      ) : (
+        <SelfRecorder />
+      )}
       {transcript && (
         <Verdict kind={overlap >= 0.8 ? 'ok' : 'info'}>
           <p>

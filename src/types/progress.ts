@@ -100,6 +100,8 @@ export interface ErrorRecord {
 export interface Settings {
   theme: 'system' | 'light' | 'dark';
   voiceURI: string | null;
+  /** true cuando ya se pasó a la voz natural (una vez se reinicia la voz elegida antes). */
+  naturalVoice?: boolean;
   rate: number;
   /** auto: el inglés de las instrucciones aumenta con el nivel. */
   instructions: 'auto' | 'es' | 'en';
@@ -107,6 +109,10 @@ export interface Settings {
   autoplay: boolean;
   /** false: se responde hablando, eligiendo u ordenando bloques; el teclado queda como opción secundaria. */
   keyboard: boolean;
+  /** Reconocimiento de voz: modelo en el teléfono o el servicio del navegador (Chrome/Google). */
+  stt: 'local' | 'browser';
+  /** Sonidos de acierto, error y micrófono. */
+  sounds: boolean;
 }
 
 export interface LessonSession {

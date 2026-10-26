@@ -1,9 +1,16 @@
+import { audioAvailable, fetchAudio, playUrl, stopAudio } from './audio';
+
 /**
- * Síntesis de voz con la Web Speech API. La disponibilidad y la calidad de las voces
+ * Reproducción de frases: primero la voz natural pregrabada (audio.ts); si la frase no tiene
+ * archivo o se eligió una voz del sistema, la síntesis de voz con la Web Speech API. La disponibilidad y la calidad de las voces
  * dependen del navegador y del dispositivo; todas las funciones fallan con elegancia.
  */
 
 export function ttsAvailable(): boolean {
+  return audioAvailable() || webSpeechAvailable();
+}
+
+function webSpeechAvailable(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
 }
 
@@ -11,7 +18,7 @@ let voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
 
 /** Las voces se cargan de forma asíncrona en Chrome/Android: esperamos el evento voiceschanged. */
 export function loadVoices(): Promise<SpeechSynthesisVoice[]> {
-  if (!ttsAvailable()) return Promise.resolve([]);
+  if (!webSpeechAvailable()) return Promise.resolve([]);
   if (voicesPromise) return voicesPromise;
   const p = new Promise<SpeechSynthesisVoice[]>((resolve) => {
     const synth = window.speechSynthesis;
@@ -41,11 +48,17 @@ export function pickVoice(voices: SpeechSynthesisVoice[], preferredURI: string |
     if (found) return found;
   }
   const en = englishVoices(voices);
-  return en.find((v) => /google/i.test(v.name) && /en[-_]US/i.test(v.lang)) ?? en[0] ?? null;
+  // Voces femeninas que suenan más naturales (Edge/Windows, Apple, Chrome), por orden de preferencia.
+  for (const re of [/(Ava|Jenny|Aria|Emma|Michelle).*(Natural|Online)/i, /Natural|Neural|Premium|Enhanced/i, /Samantha|Zira/i, /Google US English/i, /google/i]) {
+    const v = en.find((x) => re.test(x.name) && /en[-_]US/i.test(x.lang));
+    if (v) return v;
+  }
+  return en[0] ?? null;
 }
 
 export interface SpeakOptions {
   rate?: number;
+  /** null: voz natural pregrabada (y, si falta, la mejor voz del sistema). */
   voiceURI?: string | null;
 }
 
@@ -97,7 +110,6 @@ async function waitSilence(synth: SpeechSynthesis, max: number) {
  */
 export function speakResult(text: string, opts: SpeakOptions = {}): Promise<SpeakResult> {
   if (!ttsAvailable()) return Promise.resolve('failed');
-  const synth = window.speechSynthesis;
   const rate = opts.rate ?? 0.9;
   const key = `${text}|${rate}`;
   const now = Date.now();
@@ -111,9 +123,23 @@ export function speakResult(text: string, opts: SpeakOptions = {}): Promise<Spea
     return Promise.resolve('interrupted');
   }
   const my = ++generation;
+  stopAudio();
   const prev = active;
   const entry: Active = { key, at: now, promise: Promise.resolve('interrupted' as SpeakResult), u: null, done: false };
   entry.promise = (async (): Promise<SpeakResult> => {
+    if (!opts.voiceURI && audioAvailable()) {
+      const url = await fetchAudio(text);
+      if (my !== generation) return 'interrupted';
+      if (url) {
+        if (webSpeechAvailable()) window.speechSynthesis.cancel();
+        logEvent(`voz natural: «${text.slice(0, 30)}»`);
+        const r = await playUrl(url, rate);
+        logEvent(`fin (${r}): «${text.slice(0, 30)}»`);
+        if (r !== 'failed' || my !== generation) return r;
+      }
+    }
+    if (!webSpeechAvailable()) return 'failed';
+    const synth = window.speechSynthesis;
     const voices = await loadVoices();
     if (my !== generation) return 'interrupted';
     if ((prev && !prev.done) || synth.speaking || synth.pending) {
@@ -189,5 +215,6 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<bool
 export function stopSpeaking() {
   generation++;
   active = null;
-  if (ttsAvailable()) window.speechSynthesis.cancel();
+  stopAudio();
+  if (webSpeechAvailable()) window.speechSynthesis.cancel();
 }

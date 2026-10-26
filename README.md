@@ -60,10 +60,14 @@ En modo «Progresivo» (por defecto): etapa A en español, etapa B bilingüe, et
 
 - React 19 + TypeScript + Vite 8 (sin backend, sin API keys, sin cuentas).
 - CSS propio con tokens (modo claro/oscuro, mobile-first). Router propio por hash (funciona en GitHub Pages).
-- Web Speech API: síntesis de voz (en-US) y reconocimiento cuando el navegador lo ofrece; si no, grabación local con MediaRecorder o respuesta escrita.
+- Voz natural pregrabada: todas las frases del curso están grabadas con una voz neuronal femenina (Kokoro, Apache 2.0) en `public/audio/`. Se descargan al escucharlas y quedan guardadas para usarlas sin conexión. Si falta alguna, se usa la síntesis del navegador.
+- Reconocimiento de voz en el teléfono: Moonshine Base (MIT) con transformers.js en un Web Worker. Graba con un solo micrófono abierto hasta pulsar «Listo» y luego transcribe; el modelo (~63 MB) se descarga una vez, con permiso, y después funciona sin conexión.
+- Web Speech API: síntesis de voz de respaldo (en-US) y reconocimiento de Chrome como alternativa (Ajustes → Micrófono); si no hay ninguno, grabación local con MediaRecorder o respuesta escrita.
+- Lo que entiende el reconocedor siempre se puede corregir escribiendo antes de comprobar o enviar.
+- Sonidos propios de acierto, error y micrófono, sintetizados con Web Audio (se pueden desactivar).
 - PWA: `manifest.webmanifest`, iconos y service worker generado en cada build con la lista exacta de archivos y una versión por contenido (las cachés antiguas se borran al activar la nueva versión; la app avisa «Hay una versión nueva» en lugar de recargar a mitad de una lección).
 - Progreso en `localStorage` con validación, migración, exportación/importación JSON y pantalla de recuperación si los datos se dañan. Varias pestañas abiertas no se pisan entre sí.
-- Vitest: 81 pruebas (validación de respuestas, reconocimiento de voz sin duplicados, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
+- Vitest: 88 pruebas (validación de respuestas, reconocimiento de voz sin duplicados ni reinicios, preparación de la grabación, audio sin reproducciones dobles, repetición espaciada, almacenamiento, desbloqueo, detector de errores, motor de lecciones, conversación, diagnóstico e integridad de todo el contenido).
 
 ## Estructura
 
@@ -156,8 +160,9 @@ La app usa rutas relativas (`base: './'` y rutas con `#`), así que funciona con
 - Las actualizaciones llegan la próxima vez que abras la app con conexión; la app pregunta antes de actualizar.
 
 **Voz**
-- La síntesis de voz depende del dispositivo. En Android: Ajustes → Sistema → Idioma → Salida de texto a voz → instala *Inglés (Estados Unidos)* en «Síntesis de voz de Google» (permite usarla sin conexión). Puedes elegir voz y velocidad en Ajustes.
-- El **reconocimiento de voz** (responder hablando) funciona en Chrome para Android, pero **normalmente necesita internet** porque el audio se procesa en servidores del navegador. Sin conexión o en navegadores sin soporte, la app ofrece grabarte y escucharte, o responder por escrito.
+- Con la voz «Natural» (predeterminada) el audio suena igual en todos los dispositivos. Si cambias o añades frases al contenido, regenera el audio: `node scripts/audio-corpus.mjs` y luego `python scripts/make-audio.py --models <carpeta>` (instrucciones al inicio del script; solo genera lo que falta).
+- Las voces del sistema dependen del dispositivo. En Android: Ajustes → Sistema → Idioma → Salida de texto a voz → instala *Inglés (Estados Unidos)* en «Síntesis de voz de Google» (permite usarla sin conexión). Puedes elegir voz y velocidad en Ajustes.
+- El **reconocimiento de voz** (responder hablando) funciona por defecto **dentro del teléfono**: la primera vez pide permiso para descargar el modelo (~63 MB, mejor con Wi-Fi) y después funciona sin internet. Tarda uno o dos segundos en transcribir al pulsar «Listo». El reconocimiento de Chrome sigue disponible en Ajustes → Micrófono (necesita internet y en Android se corta en las pausas). Sin ninguno de los dos, la app ofrece grabarte y escucharte, o responder por escrito.
 - El micrófono **sigue escuchando hasta que pulsas «Listo»**, aunque hagas pausas para pensar (el navegador corta al detectar silencio y la app vuelve a escuchar sola; en algunos Android suena un pitido al reanudar).
 - Chrome para Android repite fragmentos del reconocimiento («hello hello my…»); la app reconstruye el texto y elimina repeticiones. Entre las interpretaciones posibles prefiere la que coincide con la respuesta esperada o contiene tu nombre.
 - La transcripción solo indica qué palabras reconoció el navegador: **no evalúa tu pronunciación** en detalle ni la app lo afirma.

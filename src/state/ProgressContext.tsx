@@ -12,6 +12,7 @@ import { wordCount } from '../engine/answer';
 import { chunkById } from '../content/course';
 import { createInitialState, loadState, saveState, STORAGE_KEY } from '../storage/store';
 import type { ExerciseResult } from '../components/exercises/types';
+import { setSoundsEnabled } from '../speech/sounds';
 
 export interface Actions {
   /** Registra el resultado de un ejercicio: intento, chunks, errores y muestras de producción. */
@@ -66,6 +67,8 @@ export function ProgressProvider({ initial, children }: { initial: ProgressState
     if (ok) dirty.current = false;
     setSaveFailed(!ok);
   }, []);
+
+  useEffect(() => setSoundsEnabled(state.settings.sounds), [state.settings.sounds]);
 
   useEffect(() => {
     if (first.current) {

@@ -11,11 +11,14 @@ export const BACKUP_APP_ID = 'english-journey';
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   voiceURI: null,
+  naturalVoice: true,
   rate: 0.9,
   instructions: 'auto',
   dailyGoalMin: 30,
   autoplay: true,
   keyboard: false,
+  stt: 'local',
+  sounds: true,
 };
 
 export function createInitialState(now = Date.now()): ProgressState {
@@ -80,6 +83,8 @@ export function migrate(data: ProgressState): ProgressState {
   const base = createInitialState(data.createdAt);
   const merged = { ...base, ...data, settings: { ...DEFAULT_SETTINGS, ...data.settings } };
   if (merged.session && !Array.isArray(merged.session.warmup)) merged.session = null;
+  // Al llegar la voz natural, las voces del sistema elegidas antes dejan paso a ella.
+  if (!data.settings?.naturalVoice) merged.settings = { ...merged.settings, voiceURI: null, naturalVoice: true };
   return merged;
 }
 

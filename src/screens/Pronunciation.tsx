@@ -9,6 +9,7 @@ import { Icon } from '../components/Icon';
 import { Card, PageHeader, Verdict } from '../components/ui';
 import { Listen, NoTtsNotice } from '../components/Audio';
 import type { ListenExercise, MinimalPairSet, SpeakExercise } from '../types/content';
+import { soundError, soundSuccess } from '../speech/sounds';
 
 type Tab = 'pairs' | 'rhythm' | 'dictation';
 
@@ -149,6 +150,7 @@ function PairGame({ set, onExit }: { set: MinimalPairSet; onExit: () => void }) 
               setPicked(w);
               const ok = w === r.target;
               if (ok) setScore((s) => s + 1);
+              (ok ? soundSuccess : soundError)();
             }}
           >
             {w}

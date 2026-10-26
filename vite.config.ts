@@ -26,9 +26,11 @@ function serviceWorker(): Plugin {
     generateBundle(_options, bundle) {
       const files = new Set<string>(['./', 'index.html']);
       for (const name of Object.keys(bundle)) {
-        if (!name.endsWith('.map') && name !== 'sw.js') files.add(name);
+        // El reconocedor de voz (≈27 MB) solo se descarga si se usa el micrófono.
+        if (!name.endsWith('.map') && name !== 'sw.js' && !isSpeechEngine(name)) files.add(name);
       }
-      for (const f of listPublic('public')) files.add(f);
+      // El audio (miles de archivos) no se precachea: se guarda al escucharlo por primera vez.
+      for (const f of listPublic('public')) if (!f.startsWith('audio/')) files.add(f);
       const list = [...files].map((f) => (f === './' ? f : './' + f));
       const hash = createHash('sha256');
       for (const [name, item] of Object.entries(bundle)) {
@@ -45,11 +47,17 @@ function serviceWorker(): Plugin {
   };
 }
 
+const isSpeechEngine = (name: string) => name.endsWith('.wasm') || name.includes('stt.worker');
+
 function swSource(version: string, files: string[]): string {
   return `/* English Journey service worker — generado en el build */
 const VERSION = ${JSON.stringify(version)};
 const CACHE = 'english-journey-' + VERSION;
 const PRECACHE = ${JSON.stringify(files)};
+// Los audios no cambian (el nombre sale del texto), así que su caché sobrevive a las versiones nuevas.
+const AUDIO_CACHE = 'english-journey-audio';
+// El motor del reconocedor de voz tiene nombre con hash: se guarda aparte para no volver a bajarlo en cada versión.
+const STT_CACHE = 'english-journey-stt';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
@@ -62,7 +70,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('english-journey-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('english-journey-') && k !== CACHE && k !== AUDIO_CACHE && k !== STT_CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -83,6 +91,17 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  const persistent = url.pathname.includes('/audio/') ? AUDIO_CACHE : /\\.wasm$|stt\\.worker/.test(url.pathname) ? STT_CACHE : null;
+  if (persistent) {
+    event.respondWith(
+      caches.open(persistent).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res.ok && res.status === 200) c.put(req, res.clone());
+        return res;
+      })))
     );
     return;
   }

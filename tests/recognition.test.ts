@@ -42,7 +42,7 @@ describe('bloques de palabras', () => {
   });
 });
 
-describe('micrófono: sigue escuchando hasta pulsar «Listo»', () => {
+describe('micrófono de Chrome: una sola sesión, sin reinicios', () => {
   /** Reconocedor falso: cada sesión «oye» el siguiente guion y termina sola (silencio). */
   function fakeRecognizer(scripts: string[][]) {
     const sessions: FakeRec[] = [];
@@ -92,17 +92,16 @@ describe('micrófono: sigue escuchando hasta pulsar «Listo»', () => {
     vi.unstubAllGlobals();
   });
 
-  it('una pausa para pensar no corta la grabación y el texto no se duplica', async () => {
-    const sessions = fakeRecognizer([['I live', 'I live in Medellín'], [], ['and I work', 'and I work from home']]);
+  it('al cortar por silencio entrega lo oído sin duplicar y no vuelve a abrir el micrófono', async () => {
+    // Cada reinicio encendía y apagaba el micrófono en Android (icono intermitente y pitidos).
+    const sessions = fakeRecognizer([['I live', 'I live in Medellín'], ['and I work']]);
     const { startRecognition } = await import('../src/speech/recognition');
     const interim: string[] = [];
     const h = startRecognition((t) => interim.push(t));
     await vi.advanceTimersByTimeAsync(2500);
-    h.stop();
-    await vi.advanceTimersByTimeAsync(500);
     const r = await h.result;
-    expect(r.transcript).toBe('I live in Medellín and I work from home');
-    expect(sessions.length).toBeGreaterThanOrEqual(3);
+    expect(r.transcript).toBe('I live in Medellín');
+    expect(sessions.length).toBe(1);
   });
 
   it('sin hablar nada, termina con un aviso en vez de escuchar para siempre', async () => {

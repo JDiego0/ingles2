@@ -4,6 +4,9 @@ import { exportBackup, parseBackup } from '../storage/store';
 import { audioLog, englishVoices, loadVoices, speak, ttsAvailable } from '../speech/tts';
 import { recognitionAvailable } from '../speech/recognition';
 import { recorderAvailable } from '../speech/recorder';
+import { localSttSupported, loadStt, sttModelDownloaded } from '../speech/stt';
+import { soundError, soundSuccess } from '../speech/sounds';
+import { useSttStatus } from '../components/VoiceInput';
 import { useOnline } from '../pwa';
 import { Icon } from '../components/Icon';
 import { Card, PageHeader, Verdict } from '../components/ui';
@@ -40,6 +43,7 @@ export function SettingsScreen() {
   }, []);
 
   const set = (patch: Partial<Settings>) => act.updateSettings(patch);
+  const stt = useSttStatus();
 
   const onFile = async (f: File | undefined) => {
     if (!f) return;
@@ -118,7 +122,7 @@ export function SettingsScreen() {
             <label className="field">
               <span>Voz en inglés</span>
               <select className="input" value={s.voiceURI ?? ''} onChange={(e) => set({ voiceURI: e.target.value || null })}>
-                <option value="">Automática (en-US)</option>
+                <option value="">Natural (recomendada)</option>
                 {voices.map((v) => (
                   <option key={v.voiceURI} value={v.voiceURI}>
                     {v.name} ({v.lang})
@@ -126,6 +130,10 @@ export function SettingsScreen() {
                 ))}
               </select>
             </label>
+            <p className="muted small">
+              «Natural» usa una voz grabada con inteligencia artificial para todas las frases del curso; se descarga la primera vez que escuchas cada frase
+              y después funciona sin conexión. Las demás opciones son las voces de tu dispositivo.
+            </p>
             {voices.length === 0 && <p className="muted small">No se encontraron voces en inglés. En Android: Ajustes → Idioma → Salida de texto a voz → instala inglés (EE. UU.).</p>}
             <label className="field">
               <span>Velocidad: {s.rate.toFixed(2)}×</span>
@@ -147,7 +155,7 @@ export function SettingsScreen() {
               <summary>Diagnóstico de audio</summary>
               <p className="muted small">
                 Si algún audio se escucha doble, ábrelo justo después y haz una captura: muestra cuántas veces se pidió hablar y con qué voz.
-                Si se pidió una sola vez y aun así suena doble, prueba otra voz en la lista de arriba.
+                Si se pidió una sola vez y aun así suena doble, elige la voz «Natural».
               </p>
               <pre className="audio-log">{log.length ? log.join('\n') : 'Todavía no se ha reproducido ningún audio.'}</pre>
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => setLog(audioLog())}>
@@ -161,13 +169,66 @@ export function SettingsScreen() {
       </Card>
 
       <Card>
+        <h2>Micrófono</h2>
+        {localSttSupported() || recognitionAvailable() ? (
+          <>
+            <label className="field">
+              <span>Reconocimiento de voz</span>
+              <select className="input" value={s.stt} onChange={(e) => set({ stt: e.target.value as Settings['stt'] })}>
+                {localSttSupported() && <option value="local">En el teléfono (recomendado)</option>}
+                {recognitionAvailable() && <option value="browser">Servicio de Chrome (Google)</option>}
+              </select>
+            </label>
+            <p className="muted small">
+              «En el teléfono» entiende mejor el inglés con acento, graba sin cortes hasta que pulsas «Listo» y funciona sin internet. Necesita
+              descargar un modelo una sola vez (unos 63 MB) y tarda un par de segundos en transcribir. El de Chrome muestra el texto mientras hablas,
+              pero necesita internet y en Android puede cortarse en las pausas.
+            </p>
+            {s.stt === 'local' && localSttSupported() && (
+              <p className="small">
+                {stt.state === 'ready' || (sttModelDownloaded() && stt.state !== 'error') ? (
+                  <>
+                    <Icon name="check" size={14} /> Modelo descargado en este teléfono.
+                  </>
+                ) : stt.state === 'loading' ? (
+                  <>Descargando: {Math.round(stt.progress * 100)} %{stt.totalMb ? ` de ${stt.totalMb} MB` : ''}…</>
+                ) : (
+                  <button type="button" className="btn btn--soft btn--sm" onClick={loadStt}>
+                    <Icon name="download" size={14} /> Descargar ahora (63 MB)
+                  </button>
+                )}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="muted small">Este navegador no puede transcribir voz. Puedes grabarte y escucharte, o responder escribiendo.</p>
+        )}
+        <label className="toggle">
+          <input type="checkbox" checked={s.sounds} onChange={(e) => set({ sounds: e.target.checked })} /> Sonidos de acierto, error y micrófono
+        </label>
+        {s.sounds && (
+          <div className="row">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={soundSuccess}>
+              <Icon name="play" size={14} /> Acierto
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={soundError}>
+              <Icon name="play" size={14} /> Error
+            </button>
+          </div>
+        )}
+      </Card>
+
+      <Card>
         <h2>Capacidades de este dispositivo</h2>
         <ul className="result-list">
           <li>
             <Icon name={ttsAvailable() ? 'check' : 'x'} size={16} /> <span>Síntesis de voz (escuchar)</span>
           </li>
           <li>
-            <Icon name={recognitionAvailable() ? 'check' : 'x'} size={16} /> <span>Reconocimiento de voz (suele requerir internet)</span>
+            <Icon name={recognitionAvailable() ? 'check' : 'x'} size={16} /> <span>Reconocimiento de voz de Chrome (suele requerir internet)</span>
+          </li>
+          <li>
+            <Icon name={localSttSupported() ? 'check' : 'x'} size={16} /> <span>Reconocimiento de voz en el teléfono</span>
           </li>
           <li>
             <Icon name={recorderAvailable() ? 'check' : 'x'} size={16} /> <span>Grabación para escucharte</span>

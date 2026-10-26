@@ -132,9 +132,9 @@ export function candidatesFrom(results: ArrayLike<RecognitionResultLike>): strin
 }
 
 /**
- * Escucha en inglés de EE. UU. hasta que se llama a `stop()` (el botón «Listo»).
- * El navegador corta solo al detectar silencio; si todavía no se pulsó «Listo», se vuelve a
- * escuchar enseguida y se suma lo nuevo, así puedes pausar para pensar sin perder la grabación.
+ * Escucha en inglés de EE. UU. hasta que se llama a `stop()` (el botón «Listo») o hasta que el
+ * navegador corta por silencio. No se reinicia sola: en Android cada reinicio encendía y apagaba
+ * el micrófono (icono intermitente y pitidos). Para añadir más, se vuelve a pulsar el micrófono.
  * `pick` elige entre las interpretaciones posibles (por ejemplo, la que coincide con la respuesta esperada).
  */
 export function startRecognition(onInterim?: (text: string) => void, pick?: (alternatives: string[]) => string | undefined): RecognitionHandle {
@@ -142,8 +142,6 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
   if (!C) {
     return { stop() {}, result: Promise.reject(new Error('Reconocimiento de voz no disponible en este navegador.')) };
   }
-  const MAX_MS = 3 * 60_000;
-  const startedAt = Date.now();
   /** Texto de las sesiones ya terminadas. */
   const segments: string[] = [];
   /** Interpretaciones de la sesión en curso y de la última con texto. */
@@ -152,7 +150,6 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
   let stopped = false;
   let settled = false;
   let listening = false;
-  let quickEmpty = 0;
   let rec: RecognitionLike | null = null;
   let resolveFn: (r: RecognitionOutcome) => void = () => {};
   let rejectFn: (e: Error) => void = () => {};
@@ -186,7 +183,6 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
     r.interimResults = true;
     r.maxAlternatives = 5;
     r.continuous = true;
-    const sessionStart = Date.now();
     let fatal: string | null = null;
     r.onresult = (e) => {
       // Se reconstruye desde el principio en cada evento: nunca se acumula texto repetido.
@@ -194,7 +190,7 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
       onInterim?.(joined(candidates[0] ?? ''));
     };
     r.onerror = (e) => {
-      // Silencio o corte del navegador: no es un fallo, se sigue escuchando.
+      // Silencio o corte del navegador: no es un fallo; se entrega lo que se haya oído.
       if (e.error === 'no-speech' || e.error === 'aborted') return;
       fatal = e.error;
     };
@@ -206,12 +202,8 @@ export function startRecognition(onInterim?: (text: string) => void, pick?: (alt
         lastAlts = candidates;
         candidates = [];
       }
-      if (fatal) return finish(fatal);
-      if (stopped || Date.now() - startedAt > MAX_MS) return finish();
-      // Evita un bucle infinito si el navegador corta una y otra vez sin escuchar nada.
-      quickEmpty = !hadText && Date.now() - sessionStart < 1000 ? quickEmpty + 1 : 0;
-      if (quickEmpty >= 4) return finish();
-      setTimeout(session, 60);
+      if (fatal && !hadText && !segments.length) return finish(fatal);
+      finish();
     };
     try {
       r.start();

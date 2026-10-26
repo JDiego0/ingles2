@@ -1916,3 +1916,52 @@ select.input {
   border-radius: 8px;
   background: var(--surface-2);
 }
+
+/* Micrófono en el teléfono: volumen mientras grabas y descarga del modelo. */
+.voice__interim .link-btn {
+  font-style: normal;
+  margin-left: auto;
+}
+.voice__meter {
+  flex: none;
+  width: 56px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.voice__meter > span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  transform-origin: left;
+  transition: transform 80ms linear;
+}
+.progress-mini {
+  flex: none;
+  width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.progress-mini > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 200ms;
+}
+.voice__consent {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+.voice__consent p {
+  margin: 0;
+}
+textarea.spoken {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  color: var(--text);
+}

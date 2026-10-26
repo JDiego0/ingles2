@@ -4,8 +4,8 @@ import { gradeFrom } from '../../engine/srs';
 import { Icon } from '../Icon';
 import { Verdict } from '../ui';
 import { Listen } from '../Audio';
-import { VoiceInput } from '../VoiceInput';
-import { recognitionAvailable } from '../../speech/recognition';
+import { VoiceInput, speechInputAvailable } from '../VoiceInput';
+import { soundClose, soundError, soundSuccess } from '../../speech/sounds';
 import { useProgress } from '../../state/ProgressContext';
 import { WordBank } from './WordBank';
 import { scoreFor, type ExerciseResult } from './types';
@@ -64,7 +64,9 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const model = modelOf(accept);
   const { state } = useProgress();
-  const canVoice = voice && recognitionAvailable();
+  const canVoice = voice && speechInputAvailable();
+  /** Lo que entendió el reconocedor; mientras no es null se puede corregir antes de comprobar. */
+  const [heard, setHeard] = useState<string | null>(null);
   // Bloques solo si la respuesta es una frase concreta (sin «…» para datos propios).
   const canTiles = !model.includes('…') && model.split(/\s+/).length >= 2;
   const [method, setMethod] = useState<Method>(state.settings.keyboard ? 'text' : canVoice ? 'voice' : canTiles ? 'tiles' : 'text');
@@ -100,10 +102,12 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
     setCanHint(true);
     if (phase === 'retype') {
       if (res.result !== 'wrong') {
+        soundSuccess();
         if (tiles) setTileStatus('ok');
         setFeedback(<Verdict kind="ok">{heard}¡Bien! Ahora la recuperaste sin verla. La repasaremos pronto para fijarla.</Verdict>);
         finish({ score: 0, grade: 'fail', given, hints, revealed: true, mode });
       } else {
+        soundError();
         setFeedback(<Verdict kind="bad">{heard}Todavía no. Mírala otra vez y vuelve a intentarlo.</Verdict>);
         setPhase('revealed');
       }
@@ -116,6 +120,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
       const score = tiles ? Math.min(0.6, scoreFor(hints, false, close)) : scoreFor(hints, false, close);
       const grade = gradeFrom({ correct: true, hints: tiles ? Math.max(1, hints) : hints, revealed: false });
       if (tiles) setTileStatus('ok');
+      (close ? soundClose : soundSuccess)();
       setFeedback(
         <Verdict kind={close ? 'close' : 'ok'}>
           {heard}
@@ -138,6 +143,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
       return;
     }
     if (tiles) setTileStatus('bad');
+    soundError();
     const diff = anyOf ? null : diffWords(given, res.target);
     setFeedback(
       <Verdict kind="bad">
@@ -194,6 +200,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
           className="btn btn--primary btn--block"
           onClick={() => {
             setText('');
+            setHeard(null);
             setFeedback(null);
             setPhase('retype');
             setTileStatus(undefined);
@@ -231,6 +238,7 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
               aria-pressed={method === m.id}
               onClick={() => {
                 setMethod(m.id);
+                setHeard(null);
                 setFeedback(null);
                 setTileStatus(undefined);
               }}
@@ -240,8 +248,58 @@ export function AnswerFlow({ accept, keys, anyOf, hint, explain, onDone, doneLab
           ))}
         </div>
       )}
-      {method === 'voice' && phase !== 'done' && (
-        <VoiceInput big label="Responder hablando" pick={(alts) => pickMatching(alts, accept, keys, anyOf)} onText={(t) => check(t, 'voice')} />
+      {method === 'voice' && phase !== 'done' && heard === null && (
+        <VoiceInput
+          big
+          label="Responder hablando"
+          pick={(alts) => pickMatching(alts, accept, keys, anyOf)}
+          onText={(t) => {
+            setText(t);
+            setHeard(t);
+            setFeedback(null);
+          }}
+        />
+      )}
+      {method === 'voice' && heard !== null && (
+        <div className="stack stack--tight">
+          {phase !== 'done' && <p className="small muted">Esto entendí. Si alguna palabra quedó mal, tócala y corrígela; luego pulsa «Comprobar».</p>}
+          <textarea
+            ref={inputRef}
+            className="input"
+            rows={2}
+            lang="en"
+            value={text}
+            aria-label="Lo que entendí (puedes corregirlo)"
+            autoCapitalize="sentences"
+            autoCorrect="off"
+            spellCheck={false}
+            readOnly={phase === 'done'}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && phase !== 'done') {
+                e.preventDefault();
+                check(undefined, 'voice');
+              }
+            }}
+          />
+          {phase !== 'done' && (
+            <div className="row">
+              <button type="button" className="btn btn--primary grow" onClick={() => check(undefined, 'voice')} disabled={!text.trim()}>
+                <Icon name="check" size={18} /> Comprobar
+              </button>
+              <VoiceInput
+                compact
+                label="Decirlo otra vez"
+                pick={(alts) => pickMatching(alts, accept, keys, anyOf)}
+                onText={(t) => {
+                  setText(t);
+                  setHeard(t);
+                  setFeedback(null);
+                }}
+              />
+            </div>
+          )}
+        </div>
       )}
       {method === 'tiles' && (
         <WordBank key={tileTry} target={model} seed={model + tileTry} prefix={phase === 'answer' ? hints : 0} status={tileStatus} onSubmit={(t) => check(t, 'tiles')} />

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Icon } from './Icon';
-import { VoiceInput } from './VoiceInput';
-import { recognitionAvailable } from '../speech/recognition';
+import { VoiceInput, speechInputAvailable } from './VoiceInput';
 import { useProgress } from '../state/ProgressContext';
 
 /**
@@ -28,7 +27,7 @@ export function SpokenComposer({
   onEnter?: () => void;
 }) {
   const { state } = useProgress();
-  const canVoice = recognitionAvailable();
+  const canVoice = speechInputAvailable();
   const [typing, setTyping] = useState(state.settings.keyboard || !canVoice);
   const [history, setHistory] = useState<string[]>([]);
 
@@ -76,9 +75,26 @@ export function SpokenComposer({
 
   return (
     <div className="stack stack--tight">
-      <div className={`spoken ${text ? '' : 'spoken--empty'} ${compact ? 'spoken--compact' : ''}`} aria-live="polite" lang="en">
-        {text || <span className="muted">Pulsa el micrófono y di tu respuesta. Si hablas otra vez, se añade al final.</span>}
-      </div>
+      {text ? (
+        <>
+          <textarea
+            className={`input spoken ${compact ? 'spoken--compact' : ''}`}
+            rows={rows}
+            lang="en"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            aria-label="Lo que entendí (puedes corregirlo)"
+            autoCapitalize="sentences"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <p className="muted small">Si alguna palabra quedó mal, tócala y corrígela antes de enviar.</p>
+        </>
+      ) : (
+        <div className={`spoken spoken--empty ${compact ? 'spoken--compact' : ''}`} aria-live="polite" lang="en">
+          <span className="muted">Pulsa el micrófono y di tu respuesta. Si hablas otra vez, se añade al final.</span>
+        </div>
+      )}
       <VoiceInput big label={text ? 'Añadir más' : 'Responder hablando'} onText={add} />
       <div className="row row--between">
         <div className="row">
