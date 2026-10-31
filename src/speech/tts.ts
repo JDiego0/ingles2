@@ -6,6 +6,8 @@ import { audioAvailable, fetchAudio, playUrl, stopAudio } from './audio';
  * dependen del navegador y del dispositivo; todas las funciones fallan con elegancia.
  */
 
+export type Gender = 'male' | 'female';
+
 export function ttsAvailable(): boolean {
   return audioAvailable() || webSpeechAvailable();
 }
@@ -56,10 +58,107 @@ export function pickVoice(voices: SpeechSynthesisVoice[], preferredURI: string |
   return en[0] ?? null;
 }
 
+// ── Voces diferenciadas por género para diálogos ────────────────────────────
+
+/** Patrones de nombre de voz típicamente masculinos en las principales plataformas. */
+const MALE_PATTERNS = [
+  /\b(Guy|Andrew|David|Mark|Brian|Christopher|Eric|Roger|Steffan)\b/i,
+  /\b(James|John|Ryan|Adam|Daniel|Matthew|Michael|William|Robert)\b/i,
+];
+/** Patrones de nombre de voz típicamente femeninos. */
+const FEMALE_PATTERNS = [
+  /\b(Ava|Jenny|Aria|Emma|Michelle|Samantha|Zira|Sara|Susan|Linda|Karen)\b/i,
+  /\b(Joanna|Salli|Kimberly|Kendra|Amy|Nicole|Fiona|Moira|Tessa|Allison)\b/i,
+];
+
+function scoreGender(name: string, patterns: RegExp[]): number {
+  return patterns.reduce((n, re) => n + (re.test(name) ? 1 : 0), 0);
+}
+
+/**
+ * Elige una voz en inglés que corresponda al género indicado.
+ * Si no puede distinguir género, devuelve cualquier voz distinta de `exclude`.
+ */
+export function pickVoiceForGender(
+  voices: SpeechSynthesisVoice[],
+  gender: Gender,
+  exclude?: SpeechSynthesisVoice | null,
+): SpeechSynthesisVoice | null {
+  const en = englishVoices(voices);
+  if (!en.length) return null;
+
+  const preferred = gender === 'male' ? MALE_PATTERNS : FEMALE_PATTERNS;
+  const avoid = gender === 'male' ? FEMALE_PATTERNS : MALE_PATTERNS;
+
+  // Candidatas: voces en inglés con coincidencia positiva de género y sin coincidencia del opuesto.
+  const candidates = en
+    .map((v) => ({ v, score: scoreGender(v.name, preferred), antiScore: scoreGender(v.name, avoid) }))
+    .filter((c) => c.score > 0 && c.antiScore === 0)
+    .sort((a, b) => b.score - a.score);
+
+  // Preferir una voz distinta a la excluida.
+  if (exclude) {
+    const different = candidates.find((c) => c.v.voiceURI !== exclude.voiceURI);
+    if (different) return different.v;
+  }
+  if (candidates.length) return candidates[0].v;
+
+  // Sin coincidencia de género: devolver cualquier voz distinta de la excluida.
+  if (exclude) {
+    const fallback = en.find((v) => v.voiceURI !== exclude.voiceURI);
+    if (fallback) return fallback;
+  }
+  return en[0] ?? null;
+}
+
+// ── Mapa de género para los hablantes de los diálogos ───────────────────────
+
+/**
+ * Género conocido de los hablantes que aparecen en los diálogos del curso.
+ * Los nombres de persona siguen su género natural; los roles genéricos se asignan
+ * aquí con un género fijo para garantizar la diferenciación constante de voces.
+ */
+const SPEAKER_GENDER: Record<string, Gender> = {
+  // Hombres
+  Diego: 'male',
+  Mark: 'male',
+  Leo: 'male',
+  Doctor: 'male',
+  CTO: 'male',
+  VP: 'male',
+  Director: 'male',
+  Investor: 'male',
+  // Mujeres
+  Sarah: 'female',
+  Ana: 'female',
+  Jessica: 'female',
+  Priya: 'female',
+  Woman: 'female',
+  // Roles neutros: se asigna un género fijo para estabilidad
+  Manager: 'female',
+  Recruiter: 'female',
+  HR: 'female',
+  Host: 'female',
+  Reception: 'female',
+  Barista: 'female',
+  Agent: 'male',
+  Clerk: 'male',
+  Client: 'male',
+  Friend: 'male',
+  User: 'male',
+};
+
+/** Devuelve el género de un hablante del diálogo; por defecto 'male'. */
+export function speakerGender(who: string): Gender {
+  return SPEAKER_GENDER[who] ?? 'male';
+}
+
 export interface SpeakOptions {
   rate?: number;
   /** null: voz natural pregrabada (y, si falta, la mejor voz del sistema). */
   voiceURI?: string | null;
+  /** Género del hablante: permite seleccionar una voz acorde en diálogos. */
+  gender?: Gender;
 }
 
 export type SpeakResult = 'ok' | 'failed' | 'interrupted';
@@ -128,7 +227,9 @@ export function speakResult(text: string, opts: SpeakOptions = {}): Promise<Spea
   const entry: Active = { key, at: now, promise: Promise.resolve('interrupted' as SpeakResult), u: null, done: false };
   entry.promise = (async (): Promise<SpeakResult> => {
     if (!opts.voiceURI && audioAvailable()) {
-      const url = await fetchAudio(text);
+      // Audio masculino usa archivos etiquetados ('m'); sin etiqueta = voz femenina predeterminada.
+      const voiceTag = opts.gender === 'male' ? 'm' : undefined;
+      const url = await fetchAudio(text, voiceTag);
       if (my !== generation) return 'interrupted';
       if (url) {
         if (webSpeechAvailable()) window.speechSynthesis.cancel();
@@ -153,7 +254,10 @@ export function speakResult(text: string, opts: SpeakOptions = {}): Promise<Spea
     return new Promise<SpeakResult>((resolve) => {
       const u = new SpeechSynthesisUtterance(text);
       entry.u = u;
-      const voice = pickVoice(voices, opts.voiceURI ?? null);
+      // Si se indicó un género, buscar una voz apropiada; si no, la normal.
+      const voice = opts.gender
+        ? pickVoiceForGender(voices, opts.gender)
+        : pickVoice(voices, opts.voiceURI ?? null);
       if (voice) u.voice = voice;
       u.lang = voice?.lang ?? 'en-US';
       u.rate = rate;

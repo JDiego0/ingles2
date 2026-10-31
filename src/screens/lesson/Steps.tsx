@@ -12,11 +12,11 @@ import { Listen, useSpeaker } from '../../components/Audio';
 import { SpokenComposer } from '../../components/SpokenComposer';
 import { Icon } from '../../components/Icon';
 import { Verdict } from '../../components/ui';
-import { ttsAvailable } from '../../speech/tts';
+import { ttsAvailable, speakerGender } from '../../speech/tts';
 
 /** Fase 2: primero escuchar sin texto y responder la idea general; después, transcripción y traducción. */
 export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson; mode: InstrMode; onRecord: (exId: string, r: ExerciseResult) => void; onDone: () => void }) {
-  const { play, playAll: playLines, speaking } = useSpeaker();
+  const { play, playDialogue, speaking } = useSpeaker();
   const tts = ttsAvailable();
   const [stage, setStage] = useState<'listen' | 'gist' | 'transcript'>(tts ? 'listen' : 'gist');
   const [gi, setGi] = useState(0);
@@ -24,13 +24,19 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
   const [allEs, setAllEs] = useState(false);
   const [playingAll, setPlayingAll] = useState(false);
   const [listened, setListened] = useState(false);
+  const [showText, setShowText] = useState(false);
   const ctx = lesson.context;
 
   const [audioFailed, setAudioFailed] = useState(false);
 
+  const dialogueLines = useMemo(
+    () => ctx.lines.map((l) => ({ text: l.en, gender: speakerGender(l.who) })),
+    [ctx.lines],
+  );
+
   const playAll = async () => {
     setPlayingAll(true);
-    const r = await playLines(ctx.lines.map((l) => l.en));
+    const r = await playDialogue(dialogueLines);
     setPlayingAll(false);
     if (r === 'failed') {
       // Sin audio real: pasar a leer la conversación.
@@ -56,7 +62,13 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
           <button type="button" className="btn btn--soft btn--block" onClick={() => setStage('gist')} disabled={!listened}>
             Responder preguntas
           </button>
-          {!listened && (
+          <button type="button" className="link-btn" onClick={() => setShowText((v) => !v)} aria-pressed={showText}>
+            <Icon name="translate" size={14} /> {showText ? 'Ocultar texto del diálogo' : 'Ver texto del diálogo'}
+          </button>
+          {showText && (
+            <Transcript lesson={lesson} showEs={{}} toggle={() => undefined} speaking={speaking} play={play} hideTranslation />
+          )}
+          {!listened && !showText && (
             <button type="button" className="link-btn" onClick={() => setStage('gist')}>
               No puedo escuchar ahora (leer en su lugar)
             </button>
@@ -69,9 +81,17 @@ export function ContextStep({ lesson, mode, onRecord, onDone }: { lesson: Lesson
           {(!tts || audioFailed) && <Verdict kind="info">Sin audio disponible: lee la conversación y responde.</Verdict>}
           {(!tts || !listened) && <Transcript lesson={lesson} showEs={{}} toggle={() => undefined} speaking={speaking} play={play} hideTranslation />}
           {listened && (
-            <button type="button" className="link-btn" onClick={playAll}>
-              <Icon name="play" size={14} /> Volver a escuchar
-            </button>
+            <>
+              <button type="button" className="link-btn" onClick={playAll}>
+                <Icon name="play" size={14} /> Volver a escuchar
+              </button>
+              <button type="button" className="link-btn" onClick={() => setShowText((v) => !v)} aria-pressed={showText}>
+                <Icon name="translate" size={14} /> {showText ? 'Ocultar texto del diálogo' : 'Ver texto del diálogo'}
+              </button>
+              {showText && (
+                <Transcript lesson={lesson} showEs={{}} toggle={() => undefined} speaking={speaking} play={play} hideTranslation />
+              )}
+            </>
           )}
           <p className="eyebrow">
             Pregunta {gi + 1} de {ctx.gist.length}
@@ -134,7 +154,7 @@ function Transcript({
   lesson: Lesson;
   showEs: Record<number, boolean>;
   toggle: (i: number) => void;
-  play: (t: string, slow?: boolean) => void;
+  play: (t: string, slow?: boolean, gender?: import('../../speech/tts').Gender) => void;
   speaking: string | null;
   hideTranslation?: boolean;
 }) {
@@ -148,7 +168,7 @@ function Transcript({
           {showEs[i] && <p className="bubble__es">{l.es}</p>}
           <div className="bubble__tools">
             {ttsAvailable() && (
-              <button type="button" className="icon-btn icon-btn--sm" onClick={() => play(l.en)} aria-label={`Escuchar: ${l.en}`}>
+              <button type="button" className="icon-btn icon-btn--sm" onClick={() => play(l.en, false, speakerGender(l.who))} aria-label={`Escuchar: ${l.en}`}>
                 <Icon name="play" size={14} />
               </button>
             )}

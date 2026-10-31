@@ -25,7 +25,9 @@ from kokoro_onnx import Kokoro
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "public" / "audio"
 # Mezcla de dos voces femeninas en-US: cálida y clara.
-VOICE = {"af_heart": 0.7, "af_bella": 0.3}
+VOICE_FEMALE = {"af_heart": 0.7, "af_bella": 0.3}
+# Mezcla de dos voces masculinas en-US: clara y cálida.
+VOICE_MALE = {"am_michael": 0.7, "am_adam": 0.3}
 
 
 def encode_mp3(samples: np.ndarray, rate: int) -> bytes:
@@ -44,24 +46,49 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="generar solo N frases (pruebas)")
     args = ap.parse_args()
 
-    corpus: dict[str, str] = json.loads((ROOT / "scripts" / "audio-corpus.json").read_text("utf-8"))
+    corpus: dict[str, str | dict] = json.loads((ROOT / "scripts" / "audio-corpus.json").read_text("utf-8"))
     OUT.mkdir(parents=True, exist_ok=True)
+
+    # Recopilar todos los ids válidos del corpus (incluye ids de voz etiquetados).
+    valid_ids: set[str] = set()
+    entries: list[tuple[str, str, dict[str, float]]] = []
+    for i, val in corpus.items():
+        if isinstance(val, str):
+            # Formato original: {id: text}
+            valid_ids.add(i)
+            entries.append((i, val, VOICE_FEMALE))
+        elif isinstance(val, dict):
+            # Formato extendido: {id: {text, voice}}
+            text = val.get("text", "")
+            voice_key = val.get("voice", "female")
+            voice = VOICE_MALE if voice_key == "male" else VOICE_FEMALE
+            valid_ids.add(i)
+            entries.append((i, text, voice))
+
     for f in OUT.glob("*.mp3"):
-        if f.stem not in corpus:
+        if f.stem not in valid_ids:
             f.unlink()
 
-    todo = [(i, t) for i, t in corpus.items() if not (OUT / f"{i}.mp3").exists()]
+    todo = [(i, t, v) for i, t, v in entries if not (OUT / f"{i}.mp3").exists()]
     if args.limit:
         todo = todo[: args.limit]
-    print(f"{len(corpus)} frases, {len(todo)} por generar", flush=True)
+    print(f"{len(entries)} frases, {len(todo)} por generar", flush=True)
     if not todo:
         return
 
     kokoro = Kokoro(str(args.models / "kokoro-v1.0.onnx"), str(args.models / "voices-v1.0.bin"))
-    style = sum(kokoro.get_voice_style(v) * w for v, w in VOICE.items())
+    # Cachear estilos de voz por mezcla para no recalcular.
+    style_cache: dict[str, object] = {}
+    def get_style(voice_mix: dict[str, float]):
+        key = str(sorted(voice_mix.items()))
+        if key not in style_cache:
+            style_cache[key] = sum(kokoro.get_voice_style(v) * w for v, w in voice_mix.items())
+        return style_cache[key]
+
     start = time.time()
-    for n, (i, text) in enumerate(todo, 1):
+    for n, (i, text, voice_mix) in enumerate(todo, 1):
         try:
+            style = get_style(voice_mix)
             samples, rate = kokoro.create(text, voice=style, speed=1.0, lang="en-us")
         except Exception as e:  # noqa: BLE001 — una frase rara no debe parar todo
             print(f"  error en «{text[:40]}»: {e}", file=sys.stderr, flush=True)

@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { speakResult, stopSpeaking, ttsAvailable } from '../speech/tts';
+import type { Gender } from '../speech/tts';
 import { useProgress } from '../state/ProgressContext';
+
+/** Línea de diálogo con texto y género del hablante. */
+export interface DialogueSpeakLine {
+  text: string;
+  gender: Gender;
+}
 
 /** Hook que reproduce texto con la voz y velocidad configuradas. */
 export function useSpeaker() {
@@ -13,16 +20,16 @@ export function useSpeaker() {
   useEffect(() => () => {
     if (active.current) stopSpeaking();
   }, []);
-  const say = async (text: string, slow = false) => {
+  const say = async (text: string, slow = false, gender?: Gender) => {
     const rate = slow ? Math.max(0.5, state.settings.rate - 0.3) : state.settings.rate;
     active.current = true;
-    const r = await speakResult(text, { rate, voiceURI: state.settings.voiceURI });
+    const r = await speakResult(text, { rate, voiceURI: state.settings.voiceURI, gender });
     active.current = false;
     return r;
   };
-  const play = async (text: string, slow = false) => {
+  const play = async (text: string, slow = false, gender?: Gender) => {
     setSpeaking(text + (slow ? ':slow' : ''));
-    const r = await say(text, slow);
+    const r = await say(text, slow, gender);
     setFailed(r === 'failed');
     setSpeaking(null);
     return r !== 'failed';
@@ -43,11 +50,27 @@ export function useSpeaker() {
     setFailed(false);
     return 'ok' as const;
   };
+  /** Reproduce líneas de diálogo con voces diferenciadas por género de cada hablante. */
+  const playDialogue = async (lines: DialogueSpeakLine[]) => {
+    for (const line of lines) {
+      setSpeaking(line.text);
+      // eslint-disable-next-line no-await-in-loop
+      const r = await say(line.text, false, line.gender);
+      if (r !== 'ok') {
+        setSpeaking(null);
+        setFailed(r === 'failed');
+        return r;
+      }
+    }
+    setSpeaking(null);
+    setFailed(false);
+    return 'ok' as const;
+  };
   const stop = () => {
     stopSpeaking();
     setSpeaking(null);
   };
-  return { play, playAll, stop, speaking, failed, available: ttsAvailable() };
+  return { play, playAll, playDialogue, stop, speaking, failed, available: ttsAvailable() };
 }
 
 export function AudioFailed() {
@@ -60,7 +83,7 @@ export function AudioFailed() {
 }
 
 /** Botón para escuchar una frase (normal y lento). Si no hay voz, lo explica. */
-export function Listen({ text, label = 'Escuchar', slow = true, compact }: { text: string; label?: string; slow?: boolean; compact?: boolean }) {
+export function Listen({ text, label = 'Escuchar', slow = true, compact, gender }: { text: string; label?: string; slow?: boolean; compact?: boolean; gender?: Gender }) {
   const { play, stop, speaking, available, failed } = useSpeaker();
   if (!available) {
     return compact ? null : <span className="muted small">Audio no disponible en este navegador.</span>;
@@ -71,7 +94,7 @@ export function Listen({ text, label = 'Escuchar', slow = true, compact }: { tex
       <button
         type="button"
         className={`btn btn--soft ${compact ? 'btn--icon' : 'btn--sm'}`}
-        onClick={() => (speaking === text ? stop() : play(text))}
+        onClick={() => (speaking === text ? stop() : play(text, false, gender))}
         aria-label={`${label}: ${text}`}
         aria-pressed={speaking === text}
       >
@@ -79,7 +102,7 @@ export function Listen({ text, label = 'Escuchar', slow = true, compact }: { tex
         {!compact && <span>{speaking === text ? 'Detener' : label}</span>}
       </button>
       {slow && (
-        <button type="button" className="btn btn--ghost btn--icon" onClick={() => play(text, true)} aria-label={`Escuchar despacio: ${text}`} title="Despacio">
+        <button type="button" className="btn btn--ghost btn--icon" onClick={() => play(text, true, gender)} aria-label={`Escuchar despacio: ${text}`} title="Despacio">
           <Icon name="slow" size={16} />
         </button>
       )}

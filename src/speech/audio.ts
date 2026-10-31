@@ -21,6 +21,20 @@ export function audioId(text: string): string {
   return h.toString(16).padStart(16, '0');
 }
 
+/**
+ * ID de audio etiquetado: el mismo hash FNV-1a pero con un sufijo de voz
+ * (por ejemplo 'm' para voz masculina) que genera un archivo diferente.
+ */
+export function audioIdTagged(text: string, voiceTag: string): string {
+  const key = audioKey(text) + '\0' + voiceTag;
+  let h = 0xcbf29ce484222325n;
+  for (const b of new TextEncoder().encode(key)) {
+    h ^= BigInt(b);
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return h.toString(16).padStart(16, '0');
+}
+
 export function audioAvailable(): boolean {
   return typeof window !== 'undefined' && typeof Audio !== 'undefined' && typeof fetch !== 'undefined';
 }
@@ -58,8 +72,8 @@ const blobs = new Map<string, string>();
 const missing = new Set<string>();
 
 /** Descarga el audio de una frase; null si no existe (o no hay conexión ni caché). */
-export async function fetchAudio(text: string): Promise<string | null> {
-  const id = audioId(text);
+export async function fetchAudio(text: string, voiceTag?: string): Promise<string | null> {
+  const id = voiceTag ? audioIdTagged(text, voiceTag) : audioId(text);
   if (missing.has(id)) return null;
   const hit = blobs.get(id);
   if (hit) return hit;
